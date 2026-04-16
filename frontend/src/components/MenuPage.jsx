@@ -1,0 +1,86 @@
+import React, { useState, useEffect } from 'react';
+import MenuCard from './MenuCard';
+
+const API_BASE = '/menu';
+
+function MenuPage() {
+  const [menu, setMenu] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchMenu = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(API_BASE);
+      if (!res.ok) throw new Error('Failed to load menu');
+      const data = await res.json();
+      setMenu(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenu();
+    // Auto-refresh every 10 seconds to catch pipeline updates
+    const interval = setInterval(fetchMenu, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="container">
+      {/* Hero section */}
+      <section className="hero">
+        <h1>Our Menu</h1>
+        <p>Freshly brewed beverages crafted with passion. Our menu evolves with AI-powered updates.</p>
+        <div className="ai-badge">
+          <div className="pulse"></div>
+          AI-Powered · Auto-Updating
+        </div>
+      </section>
+
+      {/* Menu items */}
+      <section className="menu-section" id="menu-section">
+        <div className="section-header">
+          <h2>☕ Beverages</h2>
+          <span className="item-count">{menu.length} items</span>
+        </div>
+
+        {loading && (
+          <div className="loading">
+            <div className="spinner"></div>
+            <p>Loading menu...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="empty-state">
+            <p>❌ {error}</p>
+            <button className="btn btn-primary" style={{ width: 'auto', padding: '0.5rem 1.5rem', marginTop: '1rem' }} onClick={fetchMenu}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && menu.length === 0 && (
+          <div className="empty-state">
+            <p>No items on the menu yet. Ask the owner to add some!</p>
+          </div>
+        )}
+
+        {!loading && !error && menu.length > 0 && (
+          <div className="menu-grid">
+            {menu.map((item, index) => (
+              <MenuCard key={item.name} item={item} index={index} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default MenuPage;

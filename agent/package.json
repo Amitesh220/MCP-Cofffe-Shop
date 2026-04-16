@@ -1,0 +1,16 @@
+{
+  "name": "coffee-shop-agent",
+  "version": "1.0.0",
+  "description": "AI Agent Service — Git pipeline orchestrator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "simple-git": "^3.21.0",
+    "@octokit/rest": "^20.0.2"
+  }
+}

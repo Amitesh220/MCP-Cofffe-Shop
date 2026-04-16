@@ -1,0 +1,139 @@
+import React, { useState, useEffect } from 'react';
+
+const API_BASE = '';
+
+function AdminPanel() {
+  const [services, setServices] = useState({
+    backend: 'checking',
+    frontend: 'online',
+    agent: 'checking',
+    mcp: 'checking'
+  });
+  const [logs, setLogs] = useState([]);
+  const [menuCount, setMenuCount] = useState(0);
+
+  useEffect(() => {
+    // Check backend health
+    fetch(`${API_BASE}/health`)
+      .then(r => r.json())
+      .then(() => setServices(s => ({ ...s, backend: 'online' })))
+      .catch(() => setServices(s => ({ ...s, backend: 'offline' })));
+
+    // Check menu
+    fetch(`${API_BASE}/menu`)
+      .then(r => r.json())
+      .then(data => setMenuCount(data.length))
+      .catch(() => {});
+
+    // Check agent
+    fetch('http://localhost:3001/health')
+      .then(r => r.json())
+      .then(() => setServices(s => ({ ...s, agent: 'online' })))
+      .catch(() => setServices(s => ({ ...s, agent: 'offline' })));
+
+    // Check MCP
+    fetch('http://localhost:4000/health')
+      .then(r => r.json())
+      .then(() => setServices(s => ({ ...s, mcp: 'online' })))
+      .catch(() => setServices(s => ({ ...s, mcp: 'offline' })));
+
+    // Sample logs
+    setLogs([
+      { time: new Date().toISOString(), msg: 'Admin panel loaded', type: 'info' },
+      { time: new Date().toISOString(), msg: 'Service health checks initiated', type: 'info' }
+    ]);
+  }, []);
+
+  const addLog = (msg, type = 'info') => {
+    setLogs(prev => [...prev, { time: new Date().toISOString(), msg, type }]);
+  };
+
+  const runTests = async () => {
+    addLog('Triggering MCP test suite...', 'info');
+    try {
+      const res = await fetch('http://localhost:4000/run-tests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.status === 'PASS') {
+        addLog(`Tests PASSED — ${data.results?.length || 0} tests run`, 'success');
+      } else {
+        addLog(`Tests FAILED — ${data.failures?.join(', ') || 'unknown'}`, 'error');
+      }
+    } catch (err) {
+      addLog(`Test run failed: ${err.message}`, 'error');
+    }
+  };
+
+  return (
+    <div className="container">
+      <div className="admin-page" id="admin-panel">
+        <h2>⚙️ System Dashboard</h2>
+        <p className="subtitle">Monitor services, view logs, and run tests</p>
+
+        {/* Status Cards */}
+        <div className="status-grid">
+          <div className="status-card">
+            <div className="label">Backend API</div>
+            <div className={`value ${services.backend === 'online' ? 'online' : services.backend === 'offline' ? 'offline' : ''}`}>
+              {services.backend === 'online' ? '● Online' : services.backend === 'offline' ? '● Offline' : '◌ Checking...'}
+            </div>
+          </div>
+          <div className="status-card">
+            <div className="label">Frontend</div>
+            <div className="value online">● Online</div>
+          </div>
+          <div className="status-card">
+            <div className="label">Agent Service</div>
+            <div className={`value ${services.agent === 'online' ? 'online' : services.agent === 'offline' ? 'offline' : ''}`}>
+              {services.agent === 'online' ? '● Online' : services.agent === 'offline' ? '● Offline' : '◌ Checking...'}
+            </div>
+          </div>
+          <div className="status-card">
+            <div className="label">MCP Server</div>
+            <div className={`value ${services.mcp === 'online' ? 'online' : services.mcp === 'offline' ? 'offline' : ''}`}>
+              {services.mcp === 'online' ? '● Online' : services.mcp === 'offline' ? '● Offline' : '◌ Checking...'}
+            </div>
+          </div>
+          <div className="status-card">
+            <div className="label">Menu Items</div>
+            <div className="value">{menuCount}</div>
+          </div>
+          <div className="status-card">
+            <div className="label">Actions</div>
+            <button
+              className="btn btn-primary"
+              style={{ width: 'auto', padding: '0.5rem 1rem', marginTop: '0.25rem', fontSize: '0.85rem' }}
+              onClick={runTests}
+              id="run-tests-btn"
+            >
+              🧪 Run Tests
+            </button>
+          </div>
+        </div>
+
+        {/* Log Panel */}
+        <div className="log-panel">
+          <div className="log-header">
+            <h3>📋 System Logs</h3>
+            <span className="item-count">{logs.length} entries</span>
+          </div>
+          <div className="log-content" id="log-content">
+            {logs.map((log, i) => (
+              <div key={i} className={`log-entry ${log.type}`}>
+                <span className="timestamp">[{new Date(log.time).toLocaleTimeString()}]</span>
+                {log.msg}
+              </div>
+            ))}
+            {logs.length === 0 && (
+              <div className="log-entry">No logs yet</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AdminPanel;

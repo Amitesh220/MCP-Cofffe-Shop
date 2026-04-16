@@ -1,0 +1,5 @@
+[
+  { "name": "Coffee", "price": 100, "available": true },
+  { "name": "Espresso", "price": 120, "available": true },
+  { "name": "Americano", "price": 110, "available": true }
+]
