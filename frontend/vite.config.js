@@ -10,10 +10,10 @@ export default defineConfig({
     cors: true,        // allow cross-origin
     allowedHosts: 'all', // VERY IMPORTANT
     proxy: {
-      '/menu': 'http://localhost:3000',
-      '/order': 'http://localhost:3000',
-      '/owner-command': 'http://localhost:3000',
-      '/health': 'http://localhost:3000'
+      '/menu': 'http://backend:3000',
+      '/order': 'http://backend:3000',
+      '/owner-command': 'http://backend:3000',
+      '/health': 'http://backend:3000'
     }
   }
 });
