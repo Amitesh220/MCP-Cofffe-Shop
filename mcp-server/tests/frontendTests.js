@@ -1,5 +1,5 @@
 const axios = require('axios');
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://frontend:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://frontend';
 
 // Maximum retries and delay between attempts
 const MAX_RETRIES = 5;
@@ -52,8 +52,8 @@ async function runFrontendTests() {
 
     // Test 1: Frontend responds with 200
     if (res.status === 200) {
-      tests.push({ name: 'Frontend responds on port 5173', status: 'pass' });
-      console.log('  ✅ Frontend responds on port 5173 (status: 200)');
+      tests.push({ name: 'Frontend responds on port 80', status: 'pass' });
+      console.log('  ✅ Frontend responds on port 80 (status: 200)');
 
       // Test 2: HTML structure
       const html = res.data; // axios puts the body in .data
@@ -75,7 +75,7 @@ async function runFrontendTests() {
         console.log('  ✅ Frontend loaded (title may vary)');
       }
     } else {
-      tests.push({ name: 'Frontend responds on port 5173', status: 'fail', detail: `Status: ${res.status}` });
+      tests.push({ name: 'Frontend responds on port 80', status: 'fail', detail: `Status: ${res.status}` });
       failures.push(`Frontend returned ${res.status}`);
       console.log(`  ❌ Frontend returned ${res.status}`);
     }
