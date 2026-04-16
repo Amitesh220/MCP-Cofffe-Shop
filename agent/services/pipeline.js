@@ -12,17 +12,8 @@ const {
 const MCP_URL = process.env.MCP_URL || 'http://localhost:4000';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
-// ── Apply Action to Menu ────────────────────────────────────
-function applyAction(menuPath, action) {
-  let menu = [];
-  try {
-    const raw = fs.readFileSync(menuPath, 'utf-8');
-    menu = JSON.parse(raw);
-  } catch {
-    console.log('⚠️  [PIPELINE] Could not read menu, starting fresh');
-    menu = [];
-  }
-
+// ── Process Single Action on Menu (in-memory) ───────────────
+function processSingleAction(menu, action) {
   switch (action.action) {
     case 'ADD_ITEM': {
       const exists = menu.find(i => i.name.toLowerCase() === action.name.toLowerCase());
@@ -80,8 +71,68 @@ function applyAction(menuPath, action) {
       throw new Error(`Unknown action: ${action.action}`);
   }
 
+  return menu;
+}
+
+// ── Apply Actions to Menu File ──────────────────────────────
+// Supports both single action and array of actions
+function applyActions(menuPath, actions) {
+  let menu = [];
+  try {
+    const raw = fs.readFileSync(menuPath, 'utf-8');
+    menu = JSON.parse(raw);
+  } catch {
+    console.log('⚠️  [PIPELINE] Could not read menu, starting fresh');
+    menu = [];
+  }
+
+  // Normalize: support both single action and array of actions
+  const actionList = Array.isArray(actions) ? actions : [actions];
+
+  console.log(`📦 [PIPELINE] Processing ${actionList.length} action(s)...`);
+
+  for (let i = 0; i < actionList.length; i++) {
+    const act = actionList[i];
+    console.log(`\n   ── Action ${i + 1}/${actionList.length}: ${act.action} — ${act.name || 'N/A'} ──`);
+    menu = processSingleAction(menu, act);
+  }
+
   fs.writeFileSync(menuPath, JSON.stringify(menu, null, 2));
   return menu;
+}
+
+// ── Build Commit Message for Actions ────────────────────────
+function buildCommitMessage(actions, originalCommand) {
+  const actionList = Array.isArray(actions) ? actions : [actions];
+
+  if (actionList.length === 1) {
+    const act = actionList[0];
+    return `AI Update: ${act.action} — ${act.name || 'menu change'}\n\nOriginal command: "${originalCommand}"`;
+  }
+
+  // Multiple actions: summarize all
+  const summary = actionList.map(a => `${a.action}: ${a.name || 'N/A'}`).join(', ');
+  const details = actionList.map((a, i) => `  ${i + 1}. ${a.action} — ${a.name || 'N/A'}`).join('\n');
+  return `AI Update: ${actionList.length} changes — ${summary}\n\nOriginal command: "${originalCommand}"\n\nActions:\n${details}`;
+}
+
+// ── Build PR Title and Body ─────────────────────────────────
+function buildPrInfo(actions, originalCommand) {
+  const actionList = Array.isArray(actions) ? actions : [actions];
+
+  if (actionList.length === 1) {
+    const act = actionList[0];
+    return {
+      title: `AI Update: ${act.action} — ${act.name}`,
+      body: `## AI-Generated Update\n\n**Original Command:** "${originalCommand}"\n\n**Action:** \`${JSON.stringify(act)}\`\n\n**Changes:** Updated menu.json`
+    };
+  }
+
+  const actionDetails = actionList.map((a, i) => `${i + 1}. \`${a.action}\` — ${a.name || 'N/A'}`).join('\n');
+  return {
+    title: `AI Update: ${actionList.length} menu changes`,
+    body: `## AI-Generated Update\n\n**Original Command:** "${originalCommand}"\n\n**Actions (${actionList.length}):**\n${actionDetails}\n\n**Changes:** Updated menu.json with ${actionList.length} modifications`
+  };
 }
 
 // ── Main Pipeline ───────────────────────────────────────────
@@ -96,6 +147,12 @@ async function runPipeline(action, originalCommand) {
     const icon = status === 'success' ? '✅' : status === 'error' ? '❌' : '🔄';
     console.log(`${icon} [STEP] ${step}: ${detail}`);
   };
+
+  // Normalize action input (single or array)
+  const actionList = Array.isArray(action) ? action : [action];
+  const actionSummary = actionList.map(a => `${a.action}:${a.name || '?'}`).join(', ');
+
+  console.log(`\n📦 [PIPELINE] Received ${actionList.length} action(s): ${actionSummary}`);
 
   try {
     // Step 1: Ensure repo is ready
@@ -126,11 +183,12 @@ async function runPipeline(action, originalCommand) {
       }
     }
 
-    const updatedMenu = applyAction(menuPath, action);
-    log('apply-changes', 'success', `Menu now has ${updatedMenu.length} items`);
+    // Apply ALL actions before committing (single or array)
+    const updatedMenu = applyActions(menuPath, actionList);
+    log('apply-changes', 'success', `Applied ${actionList.length} action(s) — menu now has ${updatedMenu.length} items`);
 
-    // Step 4: Commit
-    const commitMsg = `AI Update: ${action.action} — ${action.name || 'menu change'}\n\nOriginal command: "${originalCommand}"`;
+    // Step 4: Single commit for all changes
+    const commitMsg = buildCommitMessage(actionList, originalCommand);
     try {
       await commitAndPush(git, commitMsg, branchName, localMode);
       log('commit', 'success', `Committed: ${commitMsg.split('\n')[0]}`);
@@ -140,7 +198,7 @@ async function runPipeline(action, originalCommand) {
       return {
         status: 'ERROR',
         error: `Git commit failed: ${commitErr.message}`,
-        action,
+        action: actionList,
         steps,
         timestamp: new Date().toISOString()
       };
@@ -149,11 +207,8 @@ async function runPipeline(action, originalCommand) {
     // Step 5: Create PR
     let pr = { number: 0, url: 'local-mode', localMode: true };
     try {
-      pr = await createPullRequest(
-        branchName,
-        `AI Update: ${action.action} — ${action.name}`,
-        `## AI-Generated Update\n\n**Original Command:** "${originalCommand}"\n\n**Action:** \`${JSON.stringify(action)}\`\n\n**Changes:** Updated menu.json`
-      );
+      const prInfo = buildPrInfo(actionList, originalCommand);
+      pr = await createPullRequest(branchName, prInfo.title, prInfo.body);
       log('create-pr', 'success', pr.localMode ? 'Local mode — no PR' : `PR #${pr.number}: ${pr.url}`);
     } catch (err) {
       log('create-pr', 'error', err.message);
@@ -196,7 +251,6 @@ async function runPipeline(action, originalCommand) {
           log('deploy', 'error', `Backend rejected update: ${errData.error || updateRes.status}`);
         }
 
-
         // Merge PR if exists
         if (pr.number > 0 && !pr.localMode) {
           await mergePullRequest(pr.number);
@@ -218,7 +272,8 @@ async function runPipeline(action, originalCommand) {
       branch: branchName,
       pr: pr.localMode ? null : { number: pr.number, url: pr.url },
       tests: testResult,
-      action,
+      action: actionList,
+      actionsProcessed: actionList.length,
       menu: updatedMenu,
       steps,
       timestamp: new Date().toISOString()

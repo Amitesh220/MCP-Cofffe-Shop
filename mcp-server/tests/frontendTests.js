@@ -1,5 +1,34 @@
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://frontend:5173';
 
+// Maximum retries and delay between attempts
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 3000;
+
+/**
+ * Wait for frontend to become ready with retry logic
+ */
+async function waitForFrontend() {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`  🔄 [FRONTEND] Attempt ${attempt}/${MAX_RETRIES}: Checking ${FRONTEND_URL}...`);
+      const res = await fetch(FRONTEND_URL, { signal: AbortSignal.timeout(5000) });
+      if (res.status === 200) {
+        console.log(`  ✅ [FRONTEND] Frontend ready on attempt ${attempt}`);
+        return res;
+      }
+      console.log(`  ⚠️  [FRONTEND] Got status ${res.status}, retrying...`);
+    } catch (err) {
+      console.log(`  ⚠️  [FRONTEND] Attempt ${attempt} failed: ${err.message}`);
+    }
+
+    if (attempt < MAX_RETRIES) {
+      console.log(`  ⏳ [FRONTEND] Waiting ${RETRY_DELAY_MS / 1000}s before retry...`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+  return null;
+}
+
 /**
  * Run basic frontend availability tests
  */
@@ -7,16 +36,27 @@ async function runFrontendTests() {
   const tests = [];
   const failures = [];
 
-  // Test 1: Frontend is reachable
+  console.log(`  🌐 [FRONTEND] Testing URL: ${FRONTEND_URL}`);
+
+  // Wait for frontend to be ready (with retries)
   try {
-    const res = await fetch(FRONTEND_URL, { signal: AbortSignal.timeout(5000) });
+    const res = await waitForFrontend();
+
+    if (!res) {
+      tests.push({ name: 'Frontend is reachable', status: 'fail', detail: `Not ready after ${MAX_RETRIES} attempts` });
+      failures.push(`Frontend unreachable after ${MAX_RETRIES} retries`);
+      console.log(`  ❌ Frontend unreachable after ${MAX_RETRIES} retries`);
+      return { tests, failures };
+    }
+
+    // Test 1: Frontend responds with 200
     if (res.status === 200) {
       tests.push({ name: 'Frontend responds on port 5173', status: 'pass' });
-      console.log('  ✅ Frontend responds on port 5173');
+      console.log('  ✅ Frontend responds on port 5173 (status: 200)');
 
       // Test 2: HTML structure
       const html = await res.text();
-      if (html.includes('<div id="root">') || html.includes('<div id="root"></div>')) {
+      if (html.includes('<div id="root"') || html.includes('<div id="root">')) {
         tests.push({ name: 'Frontend has React root element', status: 'pass' });
         console.log('  ✅ Frontend has React root element');
       } else {

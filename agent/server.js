@@ -30,14 +30,22 @@ app.post('/run-pipeline', async (req, res) => {
     return res.status(400).json({ error: 'Action is required' });
   }
 
+  // Normalize: support both single action and array of actions
+  const actionList = Array.isArray(action) ? action : [action];
+  const actionSummary = actionList.map(a => `${a.action}:${a.name || '?'}`).join(', ');
+
   console.log(`\n${'═'.repeat(60)}`);
-  console.log(`🚀 [PIPELINE] Starting pipeline for action: ${action.action}`);
+  console.log(`🚀 [PIPELINE] Starting pipeline with ${actionList.length} action(s)`);
+  console.log(`   Actions: ${actionSummary}`);
   console.log(`   Original command: "${originalCommand}"`);
   console.log(`${'═'.repeat(60)}`);
 
   try {
     const result = await runPipeline(action, originalCommand);
     console.log(`\n✅ [PIPELINE] Completed with status: ${result.status}`);
+    if (result.actionsProcessed) {
+      console.log(`   Actions processed: ${result.actionsProcessed}`);
+    }
     console.log(`${'═'.repeat(60)}\n`);
     res.json(result);
   } catch (err) {
@@ -46,7 +54,7 @@ app.post('/run-pipeline', async (req, res) => {
     res.status(500).json({
       status: 'ERROR',
       error: err.message,
-      action
+      action: actionList
     });
   }
 });
