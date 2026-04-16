@@ -1,3 +1,4 @@
+const axios = require('axios');
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://frontend:5173';
 
 // Maximum retries and delay between attempts
@@ -11,7 +12,7 @@ async function waitForFrontend() {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       console.log(`  🔄 [FRONTEND] Attempt ${attempt}/${MAX_RETRIES}: Checking ${FRONTEND_URL}...`);
-      const res = await fetch(FRONTEND_URL, { signal: AbortSignal.timeout(5000) });
+      const res = await axios.get(FRONTEND_URL, { timeout: 3000 });
       if (res.status === 200) {
         console.log(`  ✅ [FRONTEND] Frontend ready on attempt ${attempt}`);
         return res;
@@ -55,8 +56,8 @@ async function runFrontendTests() {
       console.log('  ✅ Frontend responds on port 5173 (status: 200)');
 
       // Test 2: HTML structure
-      const html = await res.text();
-      if (html.includes('<div id="root"') || html.includes('<div id="root">')) {
+      const html = res.data; // axios puts the body in .data
+      if (typeof html === 'string' && (html.includes('<div id="root"') || html.includes('<div id="root">'))) {
         tests.push({ name: 'Frontend has React root element', status: 'pass' });
         console.log('  ✅ Frontend has React root element');
       } else {
@@ -66,7 +67,7 @@ async function runFrontendTests() {
       }
 
       // Test 3: Title
-      if (html.includes('AI Coffee Shop') || html.includes('Coffee Shop')) {
+      if (typeof html === 'string' && (html.includes('AI Coffee Shop') || html.includes('Coffee Shop'))) {
         tests.push({ name: 'Frontend has correct title', status: 'pass' });
         console.log('  ✅ Frontend has correct title');
       } else {
