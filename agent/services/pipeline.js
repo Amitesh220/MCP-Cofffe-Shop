@@ -131,8 +131,20 @@ async function runPipeline(action, originalCommand) {
 
     // Step 4: Commit
     const commitMsg = `AI Update: ${action.action} — ${action.name || 'menu change'}\n\nOriginal command: "${originalCommand}"`;
-    await commitAndPush(git, commitMsg, branchName, localMode);
-    log('commit', 'success', `Committed: ${commitMsg.split('\n')[0]}`);
+    try {
+      await commitAndPush(git, commitMsg, branchName, localMode);
+      log('commit', 'success', `Committed: ${commitMsg.split('\n')[0]}`);
+    } catch (commitErr) {
+      log('commit', 'error', `Commit failed: ${commitErr.message}`);
+      // Return structured error instead of crashing
+      return {
+        status: 'ERROR',
+        error: `Git commit failed: ${commitErr.message}`,
+        action,
+        steps,
+        timestamp: new Date().toISOString()
+      };
+    }
 
     // Step 5: Create PR
     let pr = { number: 0, url: 'local-mode', localMode: true };

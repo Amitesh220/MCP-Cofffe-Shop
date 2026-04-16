@@ -44,6 +44,8 @@ services:
       - BACKEND_URL=http://backend:3000
       - MCP_URL=http://mcp-server:4000
       - FRONTEND_URL=http://frontend:5173
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - REPO_URL=${REPO_URL}
     volumes:
       - agent-workspace:/app/workspace
     networks:
