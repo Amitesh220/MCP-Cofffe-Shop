@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function OrderPage() {
   const [menu, setMenu] = useState([]);
@@ -11,13 +11,24 @@ function OrderPage() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/menu`)
-      .then(r => r.json())
-      .then(data => {
+    const loadMenu = async () => {
+      try {
+        await fetch(`${API_BASE}/health`);
+        const res = await fetch(`${API_BASE}/menu`);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Backend returned HTML instead of JSON");
+        }
         setMenu(Array.isArray(data) ? data.filter(i => i?.available) : []);
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      } catch {
+        setLoading(false);
+      }
+    };
+    loadMenu();
   }, []);
 
   const toggleItem = (name) => {

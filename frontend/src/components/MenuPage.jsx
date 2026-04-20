@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MenuCard from './MenuCard';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function MenuPage() {
   const [menu, setMenu] = useState([]);
@@ -11,9 +11,18 @@ function MenuPage() {
   const fetchMenu = async () => {
     try {
       setLoading(true);
+      await fetch(`${API_BASE}/health`); // Validate backend reachability
       const res = await fetch(`${API_BASE}/menu`);
       if (!res.ok) throw new Error('Failed to load menu');
-      const data = await res.json();
+      
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Backend returned HTML instead of JSON");
+      }
+      
       setMenu(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {

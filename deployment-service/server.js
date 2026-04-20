@@ -13,7 +13,8 @@ app.post("/deploy", (req, res) => {
      cd /opt/MCP-Cofffe-Shop &&
      docker compose -p mcp-cofffe-shop stop frontend backend &&
      docker compose -p mcp-cofffe-shop rm -f frontend backend &&
-     docker compose -p mcp-cofffe-shop up -d --build frontend backend`,
+     docker compose -p mcp-cofffe-shop build --no-cache frontend backend &&
+     docker compose -p mcp-cofffe-shop up -d frontend backend`,
     { cwd: "/opt/MCP-Cofffe-Shop" },
     (error, stdout, stderr) => {
       if (error) {

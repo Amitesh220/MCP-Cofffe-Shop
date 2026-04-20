@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function AdminPanel() {
   const [services, setServices] = useState({
@@ -19,11 +19,23 @@ function AdminPanel() {
       .then(() => setServices(s => ({ ...s, backend: 'online' })))
       .catch(() => setServices(s => ({ ...s, backend: 'offline' })));
 
-    // Check menu
-    fetch(`${API_BASE}/menu`)
-      .then(r => r.json())
-      .then(data => setMenuCount(Array.isArray(data) ? data.length : 0))
-      .catch(() => {});
+    // Check menu safely
+    const fetchMenuSafely = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/menu`);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Backend returned HTML instead of JSON");
+        }
+        setMenuCount(Array.isArray(data) ? data.length : 0);
+      } catch (err) {
+        // ignore
+      }
+    };
+    fetchMenuSafely();
 
     // Check agent
     fetch(`${API_BASE}/agent/health`)
