@@ -14,6 +14,7 @@ const {
   mergePullRequest,
   switchToMain
 } = require('./gitOps');
+const { rollbackBranch } = require('./pipeline');
 
 const MCP_URL = process.env.MCP_URL || 'http://localhost:4000';
 
@@ -77,7 +78,8 @@ async function runUIPipeline(parsed, originalCommand) {
           case 'ADD':
           case 'GENERATE': {
             // Generate a new component
-            const generated = await generateComponent(action, existingComponents);
+            const appJsxContent = fs.existsSync(appJsxPath) ? fs.readFileSync(appJsxPath, 'utf-8') : '';
+            const generated = await generateComponent(action, existingComponents, appJsxContent);
             if (generated.error) {
               log(`action-${i + 1}`, 'error', generated.error);
               results.push({ action, status: 'error', error: generated.error });
@@ -118,17 +120,27 @@ async function runUIPipeline(parsed, originalCommand) {
                   importLine + '\n' +
                   appContent.slice(lineEnd + 1);
 
-                // Add route or inline component before </Routes>
-                const routesEnd = appContent.indexOf('</Routes>');
-                if (routesEnd !== -1) {
-                  const routeLine = `          <Route path="/${generated.componentName.toLowerCase()}" element={<${generated.componentName} />} />\n`;
-                  appContent = appContent.slice(0, routesEnd) +
-                    routeLine +
-                    appContent.slice(routesEnd);
+                // Inject component safely inside <div className="page-wrapper">
+                const wrapperIdx = appContent.indexOf('<div className="page-wrapper">');
+                if (wrapperIdx !== -1) {
+                  const wrapperEnd = appContent.indexOf('>', wrapperIdx);
+                  const injectLine = `\n        <${generated.componentName} />`;
+                  appContent = appContent.slice(0, wrapperEnd + 1) +
+                    injectLine +
+                    appContent.slice(wrapperEnd + 1);
+                } else {
+                  // Fallback: Add route or inline component before </Routes>
+                  const routesEnd = appContent.indexOf('</Routes>');
+                  if (routesEnd !== -1) {
+                    const routeLine = `          <Route path="/${generated.componentName.toLowerCase()}" element={<${generated.componentName} />} />\n`;
+                    appContent = appContent.slice(0, routesEnd) +
+                      routeLine +
+                      appContent.slice(routesEnd);
+                  }
                 }
 
                 fs.writeFileSync(appJsxPath, appContent);
-                console.log(`   📦 Updated App.jsx with ${generated.componentName} import and route`);
+                console.log(`   📦 Updated App.jsx with ${generated.componentName} safely`);
               }
             }
 
@@ -235,7 +247,7 @@ async function runUIPipeline(parsed, originalCommand) {
     const successCount = results.filter(r => r.status === 'success').length;
     if (successCount === 0) {
       log('pipeline', 'error', 'No actions succeeded');
-      await switchToMain(git).catch(() => {});
+      await rollbackBranch(git, branchName);
       return {
         status: 'REJECTED',
         error: 'No UI actions were successful',
@@ -245,6 +257,26 @@ async function runUIPipeline(parsed, originalCommand) {
       };
     }
 
+    // PRE-COMMIT VALIDATION
+    log('pre-commit', 'success', 'Validating structural integrity');
+    if (fs.existsSync(appJsxPath)) {
+      const finalAppContent = fs.readFileSync(appJsxPath, 'utf-8');
+      const requiredComponents = ['Navbar', 'MenuPage', 'OrderPage', 'AdminPanel'];
+      const missing = requiredComponents.filter(c => !finalAppContent.includes(c));
+      
+      if (missing.length > 0) {
+        log('pre-commit-validation', 'error', `App.jsx missing required components: ${missing.join(', ')}`);
+        await rollbackBranch(git, branchName);
+        return {
+          status: 'ERROR',
+          error: `Pre-commit validation failed: App.jsx missing ${missing.join(', ')}`,
+          results,
+          steps,
+          timestamp: new Date().toISOString()
+        };
+      }
+    }
+
     // Step 4: Commit changes
     const commitMsg = `AI UI Update: ${parsed.intent}\n\nOriginal command: "${originalCommand}"\n\nActions: ${results.filter(r => r.status === 'success').map(r => r.component || r.deleted || r.description || r.file).join(', ')}`;
     try {
@@ -252,7 +284,7 @@ async function runUIPipeline(parsed, originalCommand) {
       log('commit', 'success', `Committed: ${commitMsg.split('\n')[0]}`);
     } catch (commitErr) {
       log('commit', 'error', `Commit failed: ${commitErr.message}`);
-      await switchToMain(git).catch(() => {});
+      await rollbackBranch(git, branchName);
       return {
         status: 'ERROR',
         error: `Git commit failed: ${commitErr.message}`,
@@ -304,7 +336,16 @@ async function runUIPipeline(parsed, originalCommand) {
       }
       log('deploy', 'success', 'UI changes committed — rebuild frontend to apply');
     } else {
-      log('deploy', 'error', 'Tests failed — changes on branch only');
+      log('deploy', 'error', 'Tests failed — rolling back branch');
+      await rollbackBranch(git, branchName);
+      return {
+        status: 'REJECTED',
+        category: 'UI',
+        error: 'Tests failed, changes rolled back',
+        tests: testResult,
+        steps,
+        timestamp: new Date().toISOString()
+      };
     }
 
     // Switch back to main

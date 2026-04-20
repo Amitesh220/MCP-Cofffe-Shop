@@ -13,10 +13,10 @@ const COMPONENT_PROMPT = `You are a senior React developer generating components
 The app uses:
 - React 18 with functional components and hooks
 - React Router v6
-- Vanilla CSS (NO Tailwind, NO CSS modules)
+- Tailwind CSS
 - Vite as bundler
 
-Existing CSS class patterns in the app:
+Existing CSS class patterns in the app (Vanilla CSS is still present, but you must use Tailwind CSS for new components):
 - .container, .page-wrapper — layout wrappers
 - .menu-grid — CSS grid for cards
 - .menu-card, .card — card components
@@ -28,15 +28,15 @@ Existing CSS class patterns in the app:
 
 RULES:
 1. Return ONLY a JSON object with: { componentCode, cssCode, componentName, importStatement }
-2. componentCode: Complete React functional component with proper imports
-3. cssCode: Vanilla CSS rules matching the existing dark theme
+2. componentCode: Complete production-ready React functional component using Tailwind CSS classes. Clean JSX.
+3. cssCode: Leave empty string. Use Tailwind CSS for all styling.
 4. componentName: PascalCase name (e.g., "HeroSection")
 5. importStatement: The import line for App.jsx (e.g., "import HeroSection from './components/HeroSection';")
-6. Use the existing dark color palette
-7. Add smooth transitions and hover effects
-8. Make it responsive
-9. Do NOT use any external libraries/dependencies
-10. Do NOT use Tailwind classes
+6. Use Tailwind CSS utilities that match the existing dark color palette (e.g., bg-slate-900, text-slate-100, border-slate-700).
+7. Add smooth transitions and hover effects using Tailwind.
+8. Make it responsive using Tailwind breakpoints.
+9. Do NOT use any external libraries/dependencies.
+10. Compatible with existing layout. No breaking changes. No explanations.
 11. Return ONLY valid JSON, no markdown, no code fences`;
 
 const STYLE_UPDATE_PROMPT = `You are a CSS expert modifying styles for a coffee shop web application.
@@ -70,7 +70,7 @@ If multiple changes are needed, return an array of such objects.
 Return ONLY valid JSON, no markdown, no code fences.`;
 
 // ── Generate New Component ──────────────────────────────────
-async function generateComponent(action, existingComponents = []) {
+async function generateComponent(action, existingComponents = [], appJsxContent = '') {
   if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your-openai-api-key-here') {
     return {
       error: 'OpenAI API key required for UI code generation',
@@ -89,6 +89,11 @@ ${action.details?.styles ? `Styles: ${JSON.stringify(action.details.styles)}` : 
 ${action.details?.content ? `Content: ${action.details.content}` : ''}
 
 Existing components in the app: ${existingComponents.join(', ')}
+
+Current App.jsx content for context (understand layout and routing):
+\`\`\`jsx
+${appJsxContent}
+\`\`\`
 
 Generate the component now.`;
 
