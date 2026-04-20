@@ -15,8 +15,11 @@ const {
   switchToMain
 } = require('./gitOps');
 const { rollbackBranch } = require('./pipeline');
+const { execSync } = require('child_process');
 
 const MCP_URL = process.env.MCP_URL || 'http://localhost:4000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // ══════════════════════════════════════════════════════════════
 // UI PIPELINE
@@ -261,7 +264,7 @@ async function runUIPipeline(parsed, originalCommand) {
     log('pre-commit', 'success', 'Validating structural integrity');
     if (fs.existsSync(appJsxPath)) {
       const finalAppContent = fs.readFileSync(appJsxPath, 'utf-8');
-      const requiredComponents = ['Navbar', 'MenuPage', 'OrderPage', 'AdminPanel', 'MenuCard'];
+      const requiredComponents = ['Navbar', 'MenuPage', 'OrderPage', 'AdminPanel', 'MenuCard', '<Routes>', '</Routes>', '<Router>', '</Router>'];
       const missing = requiredComponents.filter(c => !finalAppContent.includes(c));
       
       const hasHiddenContainer = finalAppContent.includes('hidden-components-container') || finalAppContent.includes('display: "none"');
@@ -325,6 +328,62 @@ async function runUIPipeline(parsed, originalCommand) {
       log('create-pr', 'success', pr.localMode ? 'Local mode — no PR' : `PR #${pr.number}`);
     } catch (err) {
       log('create-pr', 'error', err.message);
+    }
+
+    // Step 5.5: Rebuild Docker containers and wait for health
+    try {
+      log('rebuild', 'pending', 'Rebuilding frontend and backend containers...');
+      console.log('🐳 [UI-PIPELINE] Running docker compose up -d --build --force-recreate frontend backend');
+      
+      execSync('docker compose up -d --build --force-recreate frontend backend', { 
+        cwd: repoDir,
+        stdio: 'ignore'
+      });
+      log('rebuild', 'success', 'Containers rebuilt and starting');
+
+      // Wait for services to become healthy
+      log('health-check', 'pending', 'Waiting for services to become healthy...');
+      let backendReady = false;
+      let frontendReady = false;
+      const maxRetries = 30; // 60 seconds total
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        if (!backendReady) {
+          try {
+            const res = await fetch(`${BACKEND_URL}/health`);
+            if (res.status === 200) backendReady = true;
+          } catch (e) { /* ignore */ }
+        }
+        
+        if (!frontendReady) {
+          try {
+            const res = await fetch(`${FRONTEND_URL}`);
+            if (res.status === 200) frontendReady = true;
+          } catch (e) { /* ignore */ }
+        }
+
+        if (backendReady && frontendReady) {
+          break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      if (backendReady && frontendReady) {
+        log('health-check', 'success', 'Services are live and ready for testing');
+      } else {
+        throw new Error(`Timeout waiting for services: Backend (${backendReady}), Frontend (${frontendReady})`);
+      }
+    } catch (err) {
+      log('rebuild', 'error', `Rebuild or health check failed: ${err.message}`);
+      await rollbackBranch(git, branchName);
+      return {
+        status: 'ERROR',
+        error: `Pipeline failed during docker rebuild/healthcheck: ${err.message}`,
+        results,
+        steps,
+        timestamp: new Date().toISOString()
+      };
     }
 
     // Step 6: Run tests

@@ -36,7 +36,7 @@ RULES:
 7. Add smooth transitions and hover effects using Tailwind.
 8. Make it responsive using Tailwind breakpoints.
 9. Do NOT use any external libraries/dependencies.
-10. Ensure all existing components remain imported and mounted. Do not remove or alter any existing imports or JSX. Always preserve hidden component container.
+10. Do NOT modify routing, Navbar, or existing components. Only append new UI components inside the page-wrapper container. Always preserve hidden component container.
 11. Return ONLY valid JSON, no markdown, no code fences`;
 
 const STYLE_UPDATE_PROMPT = `You are a CSS expert modifying styles for a coffee shop web application.
