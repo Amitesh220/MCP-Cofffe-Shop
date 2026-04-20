@@ -8,10 +8,12 @@ app.post("/deploy", (req, res) => {
   console.log("🚀 Deployment triggered");
 
   exec(
-    `docker compose stop frontend backend &&
-     docker compose rm -f frontend backend &&
-     docker compose up -d --build frontend backend`,
-    { cwd: "/workspace" },
+    `docker ps -a | grep workspace | awk '{print $1}' | xargs -r docker rm -f;
+     docker network prune -f;
+     cd /opt/MCP-Cofffe-Shop &&
+     docker compose -p mcp-cofffe-shop down &&
+     docker compose -p mcp-cofffe-shop up -d --build`,
+    { cwd: "/opt/MCP-Cofffe-Shop" },
     (error, stdout, stderr) => {
       if (error) {
         console.error("❌ Deployment failed:", stderr || error.message);
