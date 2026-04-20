@@ -261,15 +261,21 @@ async function runUIPipeline(parsed, originalCommand) {
     log('pre-commit', 'success', 'Validating structural integrity');
     if (fs.existsSync(appJsxPath)) {
       const finalAppContent = fs.readFileSync(appJsxPath, 'utf-8');
-      const requiredComponents = ['Navbar', 'MenuPage', 'OrderPage', 'AdminPanel'];
+      const requiredComponents = ['Navbar', 'MenuPage', 'OrderPage', 'AdminPanel', 'MenuCard'];
       const missing = requiredComponents.filter(c => !finalAppContent.includes(c));
       
-      if (missing.length > 0) {
-        log('pre-commit-validation', 'error', `App.jsx missing required components: ${missing.join(', ')}`);
+      const hasHiddenContainer = finalAppContent.includes('hidden-components-container') || finalAppContent.includes('display: "none"');
+      
+      if (missing.length > 0 || !hasHiddenContainer) {
+        const errorMsg = missing.length > 0 
+          ? `App.jsx missing required components: ${missing.join(', ')}` 
+          : `App.jsx is missing the hidden components container`;
+          
+        log('pre-commit-validation', 'error', errorMsg);
         await rollbackBranch(git, branchName);
         return {
           status: 'ERROR',
-          error: `Pre-commit validation failed: App.jsx missing ${missing.join(', ')}`,
+          error: `Pre-commit validation failed: ${errorMsg}`,
           results,
           steps,
           timestamp: new Date().toISOString()
