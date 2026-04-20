@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import MenuPage from './components/MenuPage';
 import OrderPage from './components/OrderPage';
 import AdminPanel from './components/AdminPanel';
+import HeroSection from './components/HeroSection';
 
 function App() {
   return (
@@ -14,7 +15,8 @@ function App() {
           <Route path="/" element={<MenuPage />} />
           <Route path="/order" element={<OrderPage />} />
           <Route path="/admin" element={<AdminPanel />} />
-        </Routes>
+                  <Route path="/herosection" element={<HeroSection />} />
+</Routes>
       </div>
     </Router>
   );
