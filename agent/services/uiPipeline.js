@@ -124,8 +124,8 @@ async function runUIPipeline(parsed, originalCommand) {
                   importLine + '\n' +
                   appContent.slice(lineEnd + 1);
 
-                // Inject component safely inside <div id="ai-components">
-                const aiZoneMarker = '<div id="ai-components">';
+                // Inject component safely inside <div id="ai-generated-root">
+                const aiZoneMarker = '<div id="ai-generated-root">';
                 const aiZoneIdx = appContent.indexOf(aiZoneMarker);
                 if (aiZoneIdx !== -1) {
                   const aiZoneEnd = appContent.indexOf('>', aiZoneIdx);
@@ -146,7 +146,7 @@ async function runUIPipeline(parsed, originalCommand) {
                 }
 
                 fs.writeFileSync(appJsxPath, appContent);
-                console.log(`   📦 Injected ${generated.componentName} into ai-components zone`);
+                console.log(`   📦 Injected ${generated.componentName} into ai-generated-root zone`);
               }
             }
 
@@ -282,14 +282,14 @@ async function runUIPipeline(parsed, originalCommand) {
       const missing = requiredComponents.filter(c => !finalAppContent.includes(c));
       
       const hasHiddenContainer = finalAppContent.includes('hidden-components-container') || finalAppContent.includes('display: "none"');
-      const hasAiZone = finalAppContent.includes('id="ai-components"');
+      const hasAiZone = finalAppContent.includes('id="ai-generated-root"');
       
       if (missing.length > 0 || !hasHiddenContainer || !hasAiZone) {
         const errorMsg = missing.length > 0 
           ? `App.jsx missing required components: ${missing.join(', ')}` 
           : !hasHiddenContainer
             ? `App.jsx is missing the hidden components container`
-            : `App.jsx is missing the ai-components injection zone`;
+            : `App.jsx is missing the ai-generated-root injection zone`;
           
         log('pre-commit-validation', 'error', errorMsg);
         await rollbackBranch(git, branchName);
