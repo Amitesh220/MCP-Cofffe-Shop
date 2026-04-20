@@ -5,6 +5,7 @@ import MenuPage from './components/MenuPage';
 import MenuCard from './components/MenuCard';
 import OrderPage from './components/OrderPage';
 import AdminPanel from './components/AdminPanel';
+import HeroSection from './components/HeroSection';
 
 // Prevent tree-shaking by creating a constant array referencing all core components
 const CORE_COMPONENTS = [Navbar, MenuPage, MenuCard, OrderPage, AdminPanel];
@@ -27,6 +28,7 @@ function App() {
 
       {/* ═══ AI INJECTION ZONE: New components go here ═══ */}
       <div id="ai-generated-root">
+        <HeroSection />
       </div>
       {/* ═══ END AI INJECTION ZONE ═══ */}
 
