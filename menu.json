@@ -13,10 +13,5 @@
     "name": "Americano",
     "price": 110,
     "available": true
-  },
-  {
-    "name": "Cappuccino",
-    "price": 180,
-    "available": true
   }
 ]
