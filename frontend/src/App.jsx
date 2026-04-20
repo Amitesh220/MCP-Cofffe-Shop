@@ -4,12 +4,14 @@ import Navbar from './components/Navbar';
 import MenuPage from './components/MenuPage';
 import OrderPage from './components/OrderPage';
 import AdminPanel from './components/AdminPanel';
+import HeroSection from './components/HeroSection';
 
 function App() {
   return (
     <Router>
       <Navbar />
       <div className="page-wrapper">
+        <HeroSection />
         <Routes>
           <Route path="/" element={<MenuPage />} />
           <Route path="/order" element={<OrderPage />} />
