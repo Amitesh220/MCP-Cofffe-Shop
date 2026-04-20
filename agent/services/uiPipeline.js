@@ -79,7 +79,8 @@ async function runUIPipeline(parsed, originalCommand) {
       try {
         switch (action.type) {
           case 'ADD':
-          case 'GENERATE': {
+          case 'GENERATE':
+          case 'ADD_SECTION': {
             // Generate a new component
             const appJsxContent = fs.existsSync(appJsxPath) ? fs.readFileSync(appJsxPath, 'utf-8') : '';
             const generated = await generateComponent(action, existingComponents, appJsxContent);
@@ -153,7 +154,8 @@ async function runUIPipeline(parsed, originalCommand) {
             break;
           }
 
-          case 'DELETE': {
+          case 'DELETE':
+          case 'REMOVE_SECTION': {
             // Remove a component
             const targetName = action.target.replace(/\.jsx$/, '');
             const filePath = path.join(componentsDir, `${targetName}.jsx`);
@@ -202,9 +204,11 @@ async function runUIPipeline(parsed, originalCommand) {
             break;
           }
 
-          case 'UPDATE': {
-            // Update content in existing component
-            const targetFile = action.details?.targetComponent || `${action.target}.jsx`;
+          case 'UPDATE':
+          case 'UPDATE_TEXT':
+          case 'CHANGE_STYLE': {
+            // Update content or style inside an existing component file
+            const targetFile = action.target.endsWith('.jsx') ? action.target : `${action.target}.jsx`;
             const targetPath = path.join(componentsDir, targetFile);
 
             if (fs.existsSync(targetPath)) {
@@ -227,7 +231,7 @@ async function runUIPipeline(parsed, originalCommand) {
               }
 
               fs.writeFileSync(targetPath, updatedSource);
-              log(`action-${i + 1}`, 'success', `Updated content in ${targetFile}`);
+              log(`action-${i + 1}`, 'success', `Updated component ${targetFile}`);
               results.push({ action, status: 'success', file: targetFile });
             } else {
               log(`action-${i + 1}`, 'error', `Component not found: ${targetFile}`);

@@ -36,7 +36,7 @@ RULES:
 7. Add smooth transitions and hover effects using Tailwind.
 8. Make it responsive using Tailwind breakpoints.
 9. Do NOT use any external libraries/dependencies.
-10. Do NOT modify routing, Navbar, or existing components. Only append new UI components inside the page-wrapper container. Always preserve hidden component container.
+10. DO NOT MODIFY EXISTING FILE STRUCTURE. ONLY ADD NEW COMPONENTS AND INJECT THEM WITHOUT REMOVING ANY EXISTING CODE. Always preserve hidden component container.
 11. Return ONLY valid JSON, no markdown, no code fences`;
 
 const STYLE_UPDATE_PROMPT = `You are a CSS expert modifying styles for a coffee shop web application.
@@ -56,18 +56,25 @@ Return ONLY a JSON object with:
 
 Return ONLY valid JSON, no markdown, no code fences.`;
 
-const CONTENT_UPDATE_PROMPT = `You are a React developer updating content in an existing component.
+const CONTENT_UPDATE_PROMPT = `You are a React developer updating an existing component's source code safely.
+You are given a target component filename and its current source code.
 
-Return ONLY a JSON object with:
-{
-  "targetComponent": "component filename (e.g., MenuPage.jsx)",
-  "searchText": "exact text/code to find",
-  "replaceText": "replacement text/code",
-  "description": "what the change does"
-}
+Your goal is to perform component-level edits (like UPDATE_TEXT or CHANGE_STYLE) without rewriting the entire file. 
+You must provide exact 'searchText' blocks and their corresponding 'replaceText' blocks.
 
-If multiple changes are needed, return an array of such objects.
-Return ONLY valid JSON, no markdown, no code fences.`;
+For UPDATE_TEXT: target the specific text node inside the JSX tags.
+For CHANGE_STYLE: target the className string or inline style object of the relevant element.
+
+Return ONLY a JSON array of replacement objects:
+[
+  {
+    "searchText": "exact text/code to find (include enough surrounding context to be unique)",
+    "replaceText": "the replacement text/code",
+    "description": "what the change does"
+  }
+]
+
+Return ONLY valid JSON array, no markdown, no code fences.`;
 
 // ── Generate New Component ──────────────────────────────────
 async function generateComponent(action, existingComponents = [], appJsxContent = '') {
@@ -194,8 +201,10 @@ async function generateContentUpdate(action, componentSource) {
 
   const userPrompt = `Update content in a React component for this request:
 
-Target: ${action.target}
-Change: ${action.details?.description || action.details?.content || action.target}
+Target Action Type: ${action.type}
+Target Element/Field: ${action.target} - ${action.field || action.property || ''}
+Value: ${action.value || ''}
+Change Description: ${action.details?.description || action.details?.content || JSON.stringify(action.details) || action.target}
 Current component source:
 ${componentSource}`;
 

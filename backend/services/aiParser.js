@@ -42,10 +42,10 @@ Target: the menu item name
 Details: { name, price, available }
 
 ### UI — Frontend visual changes
-Examples: "Add hero section", "Change button color to red", "Make layout modern", "Add animation", "Improve UI"
-Supported action types: ADD, DELETE, STYLE, UPDATE, GENERATE
-Target: component or element name (e.g., "Hero", "button", "header", "footer")
-Details: { description, styles, content, componentName }
+Examples: "Add hero section", "Change button color to red", "Make layout modern", "Add animation", "Improve UI", "Change hero text to Welcome"
+Supported action types: ADD, DELETE, STYLE, UPDATE, GENERATE, UPDATE_TEXT, CHANGE_STYLE, ADD_SECTION, REMOVE_SECTION
+Target: component or element name (e.g., "HeroSection", "Navbar", "button")
+Details: { description, styles, content, componentName, field, value, property }
 
 ### SYSTEM — DevOps / backend behavior changes
 Examples: "Add logging", "Fix bug", "Optimize performance", "Add error handling", "Improve loading speed"
@@ -77,8 +77,11 @@ Return ONLY this JSON structure, nothing else:
   "intent": "short description of what user wants",
   "actions": [
     {
-      "type": "ADD | UPDATE | DELETE | STYLE | GENERATE | ANALYZE",
-      "target": "target name",
+      "type": "ADD | UPDATE | DELETE | STYLE | GENERATE | ANALYZE | UPDATE_TEXT | CHANGE_STYLE | ADD_SECTION | REMOVE_SECTION",
+      "target": "target component name (e.g., HeroSection, Navbar)",
+      "field": "optional field name for text update",
+      "property": "optional css property for style update",
+      "value": "optional value for text or style update",
       "details": {}
     }
   ],
