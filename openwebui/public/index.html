@@ -387,13 +387,37 @@
       return msg;
     }
 
+    async function fetchWithRetryClient(url, options, retries = 3, delay = 3000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const res = await fetch(url, options);
+          if (res.ok) return res;
+          if (res.status === 503) {
+            // Backend unavailable, update UI status
+            updateTypingStatus('Backend restarting, retrying...');
+            throw new Error('503');
+          }
+          return res; // Return other errors to be handled by the caller
+        } catch (err) {
+          if (i === retries - 1) throw new Error("Backend temporarily unavailable. Please retry.");
+          updateTypingStatus('Deployment in progress... Retrying connection...');
+        }
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+      }
+    }
+
     function addTypingIndicator() {
       const el = document.createElement('div');
       el.className = 'typing-indicator';
       el.id = 'typing';
-      el.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      el.innerHTML = '<span id="typing-text" style="font-size:0.85rem; color:var(--text-muted); margin-right:8px;">Processing...</span><div class="dot"></div><div class="dot"></div><div class="dot"></div>';
       chatArea.appendChild(el);
       chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function updateTypingStatus(text) {
+      const textEl = document.getElementById('typing-text');
+      if (textEl) textEl.textContent = text;
     }
 
     function removeTypingIndicator() {
@@ -451,18 +475,18 @@
       addTypingIndicator();
 
       try {
-        const res = await fetch('/api/command', {
+        const res = await fetchWithRetryClient('/api/command', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ command })
-        });
+        }, 3, 2000);
 
         removeTypingIndicator();
 
         const data = await res.json();
 
         if (data.error) {
-          addMessage(`❌ Error: ${data.error}`, 'system');
+          addMessage(`❌ ${data.error}`, 'system');
         } else {
           let summary = '';
           if (data.status === 'DEPLOYED' || data.pipeline?.status === 'DEPLOYED') {
@@ -478,7 +502,7 @@
         }
       } catch (err) {
         removeTypingIndicator();
-        addMessage(`❌ Failed to connect: ${err.message}`, 'system');
+        addMessage(`❌ ${err.message}`, 'system');
       }
 
       sendBtn.disabled = false;
