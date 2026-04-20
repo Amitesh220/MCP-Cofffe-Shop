@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = '';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function AdminPanel() {
   const [services, setServices] = useState({

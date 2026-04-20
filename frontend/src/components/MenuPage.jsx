@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MenuCard from './MenuCard';
 
-const API_BASE = '/menu';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function MenuPage() {
   const [menu, setMenu] = useState([]);
@@ -11,7 +11,7 @@ function MenuPage() {
   const fetchMenu = async () => {
     try {
       setLoading(true);
-      const res = await fetch(API_BASE);
+      const res = await fetch(`${API_BASE}/menu`);
       if (!res.ok) throw new Error('Failed to load menu');
       const data = await res.json();
       setMenu(data);
