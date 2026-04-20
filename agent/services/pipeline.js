@@ -319,5 +319,23 @@ function localValidation(menu) {
     results: errors.length === 0 ? ['Valid JSON', 'No duplicates', 'All fields valid'] : errors
   };
 }
+// ── Rollback Branch (discard changes) ───────────────────────
+async function rollbackBranch(git, branchName) {
+  try {
+    console.log(`🔙 [PIPELINE] Rolling back branch: ${branchName}`);
+    await git.checkout('main').catch(() => git.checkout('master'));
+    await git.deleteLocalBranch(branchName, true).catch(() => {});
+    console.log(`✅ [PIPELINE] Branch ${branchName} rolled back`);
+  } catch (err) {
+    console.error(`⚠️  [PIPELINE] Rollback failed: ${err.message}`);
+  }
+}
 
-module.exports = { runPipeline };
+module.exports = {
+  runPipeline,
+  applyActions,
+  buildCommitMessage,
+  buildPrInfo,
+  localValidation,
+  rollbackBranch
+};

@@ -3,6 +3,7 @@ const cors = require('cors');
 const { validateMenu } = require('./tests/menuValidator');
 const { runApiTests } = require('./tests/apiTests');
 const { runFrontendTests } = require('./tests/frontendTests');
+const { runBuildTests, runComponentTests } = require('./tests/buildTests');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -45,6 +46,18 @@ app.post('/run-tests', async (req, res) => {
   results.push(...frontendResult.tests);
   if (frontendResult.failures.length > 0) failures.push(...frontendResult.failures);
 
+  // Test 4: Build Tests (NEW)
+  console.log('\n── Build Tests ────────────────────────────────────');
+  const buildResult = await runBuildTests();
+  results.push(...buildResult.tests);
+  if (buildResult.failures.length > 0) failures.push(...buildResult.failures);
+
+  // Test 5: Component Tests (NEW)
+  console.log('\n── Component Tests ────────────────────────────────');
+  const componentResult = await runComponentTests();
+  results.push(...componentResult.tests);
+  if (componentResult.failures.length > 0) failures.push(...componentResult.failures);
+
   // Aggregate
   const status = failures.length === 0 ? 'PASS' : 'FAIL';
   const passed = results.filter(r => r.status === 'pass').length;
@@ -84,8 +97,27 @@ app.post('/run-tests/frontend', async (req, res) => {
   res.json(result);
 });
 
+// NEW: Build validation endpoint
+app.post('/run-tests/build', async (req, res) => {
+  console.log('\n🔨 [MCP] Running build tests...');
+  const result = await runBuildTests();
+  res.json(result);
+});
+
+// NEW: Component validation endpoint
+app.post('/run-tests/components', async (req, res) => {
+  console.log('\n🧩 [MCP] Running component tests...');
+  const result = await runComponentTests();
+  res.json(result);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🧪 MCP Testing Server running on port ${PORT}`);
-  console.log(`   Run Tests:  http://localhost:${PORT}/run-tests`);
-  console.log(`   Health:     http://localhost:${PORT}/health\n`);
+  console.log(`   Run Tests:       http://localhost:${PORT}/run-tests`);
+  console.log(`   Menu Tests:      http://localhost:${PORT}/run-tests/menu`);
+  console.log(`   API Tests:       http://localhost:${PORT}/run-tests/api`);
+  console.log(`   Frontend Tests:  http://localhost:${PORT}/run-tests/frontend`);
+  console.log(`   Build Tests:     http://localhost:${PORT}/run-tests/build`);
+  console.log(`   Component Tests: http://localhost:${PORT}/run-tests/components`);
+  console.log(`   Health:          http://localhost:${PORT}/health\n`);
 });
