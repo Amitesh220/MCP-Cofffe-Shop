@@ -26,13 +26,13 @@ function AdminPanel() {
       .catch(() => {});
 
     // Check agent
-    fetch('http://localhost:3001/health')
+    fetch(`${API_BASE}/agent/health`)
       .then(r => r.json())
       .then(() => setServices(s => ({ ...s, agent: 'online' })))
       .catch(() => setServices(s => ({ ...s, agent: 'offline' })));
 
     // Check MCP
-    fetch('http://localhost:4000/health')
+    fetch(`${API_BASE}/mcp/health`)
       .then(r => r.json())
       .then(() => setServices(s => ({ ...s, mcp: 'online' })))
       .catch(() => setServices(s => ({ ...s, mcp: 'offline' })));
@@ -51,7 +51,7 @@ function AdminPanel() {
   const runTests = async () => {
     addLog('Triggering MCP test suite...', 'info');
     try {
-      const res = await fetch('http://localhost:4000/run-tests', {
+      const res = await fetch(`${API_BASE}/mcp/run-tests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
