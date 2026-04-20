@@ -22,7 +22,7 @@
   {
     "name": "Cookies",
     "price": 60,
-    "available": true
+    "available": false
   },
   {
     "name": "Icecream",
