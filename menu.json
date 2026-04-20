@@ -33,5 +33,10 @@
     "name": "Icecream",
     "price": 150,
     "available": true
+  },
+  {
+    "name": "Smoothie",
+    "price": 200,
+    "available": true
   }
 ]
