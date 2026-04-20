@@ -9,6 +9,7 @@ import AdminPanel from './components/AdminPanel';
 function App() {
   return (
     <Router>
+      {/* ═══ PROTECTED ZONE: CORE LAYOUT ═══ DO NOT MODIFY ═══ */}
       <Navbar />
       <div className="page-wrapper">
         <Routes>
@@ -17,8 +18,14 @@ function App() {
           <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </div>
-      
-      {/* FORCE COMPONENT BUNDLING FOR MCP TESTS */}
+      {/* ═══ END PROTECTED ZONE ═══ */}
+
+      {/* ═══ AI INJECTION ZONE: New components go here ═══ */}
+      <div id="ai-components">
+      </div>
+      {/* ═══ END AI INJECTION ZONE ═══ */}
+
+      {/* FORCE COMPONENT BUNDLING FOR MCP TESTS — DO NOT REMOVE */}
       <div style={{ display: "none" }} id="hidden-components-container">
         <MenuPage />
         <MenuCard />

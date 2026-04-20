@@ -110,7 +110,7 @@ async function runUIPipeline(parsed, originalCommand) {
               console.log(`   🎨 Appended CSS for ${generated.componentName}`);
             }
 
-            // Update App.jsx to import new component
+            // Update App.jsx to import and inject new component
             if (fs.existsSync(appJsxPath)) {
               let appContent = fs.readFileSync(appJsxPath, 'utf-8');
               const importLine = generated.importStatement;
@@ -124,27 +124,29 @@ async function runUIPipeline(parsed, originalCommand) {
                   importLine + '\n' +
                   appContent.slice(lineEnd + 1);
 
-                // Inject component safely inside <div className="page-wrapper">
-                const wrapperIdx = appContent.indexOf('<div className="page-wrapper">');
-                if (wrapperIdx !== -1) {
-                  const wrapperEnd = appContent.indexOf('>', wrapperIdx);
+                // Inject component safely inside <div id="ai-components">
+                const aiZoneMarker = '<div id="ai-components">';
+                const aiZoneIdx = appContent.indexOf(aiZoneMarker);
+                if (aiZoneIdx !== -1) {
+                  const aiZoneEnd = appContent.indexOf('>', aiZoneIdx);
                   const injectLine = `\n        <${generated.componentName} />`;
-                  appContent = appContent.slice(0, wrapperEnd + 1) +
+                  appContent = appContent.slice(0, aiZoneEnd + 1) +
                     injectLine +
-                    appContent.slice(wrapperEnd + 1);
+                    appContent.slice(aiZoneEnd + 1);
                 } else {
-                  // Fallback: Add route or inline component before </Routes>
-                  const routesEnd = appContent.indexOf('</Routes>');
-                  if (routesEnd !== -1) {
-                    const routeLine = `          <Route path="/${generated.componentName.toLowerCase()}" element={<${generated.componentName} />} />\n`;
-                    appContent = appContent.slice(0, routesEnd) +
-                      routeLine +
-                      appContent.slice(routesEnd);
+                  // Fallback: inject before hidden-components-container
+                  const hiddenIdx = appContent.indexOf('hidden-components-container');
+                  if (hiddenIdx !== -1) {
+                    const divStart = appContent.lastIndexOf('<div', hiddenIdx);
+                    const injectBlock = `      {/* AI Injected */}\n      <${generated.componentName} />\n\n`;
+                    appContent = appContent.slice(0, divStart) +
+                      injectBlock +
+                      appContent.slice(divStart);
                   }
                 }
 
                 fs.writeFileSync(appJsxPath, appContent);
-                console.log(`   📦 Updated App.jsx with ${generated.componentName} safely`);
+                console.log(`   📦 Injected ${generated.componentName} into ai-components zone`);
               }
             }
 
@@ -156,8 +158,16 @@ async function runUIPipeline(parsed, originalCommand) {
 
           case 'DELETE':
           case 'REMOVE_SECTION': {
-            // Remove a component
+            // Remove a component (ONLY non-protected ones)
             const targetName = action.target.replace(/\.jsx$/, '');
+            const PROTECTED_COMPONENTS = ['Navbar', 'MenuPage', 'MenuCard', 'OrderPage', 'AdminPanel'];
+
+            if (PROTECTED_COMPONENTS.includes(targetName)) {
+              log(`action-${i + 1}`, 'error', `Cannot delete protected component: ${targetName}`);
+              results.push({ action, status: 'error', error: `${targetName} is a protected core component and cannot be deleted` });
+              break;
+            }
+
             const filePath = path.join(componentsDir, `${targetName}.jsx`);
 
             if (fs.existsSync(filePath)) {
@@ -272,11 +282,14 @@ async function runUIPipeline(parsed, originalCommand) {
       const missing = requiredComponents.filter(c => !finalAppContent.includes(c));
       
       const hasHiddenContainer = finalAppContent.includes('hidden-components-container') || finalAppContent.includes('display: "none"');
+      const hasAiZone = finalAppContent.includes('id="ai-components"');
       
-      if (missing.length > 0 || !hasHiddenContainer) {
+      if (missing.length > 0 || !hasHiddenContainer || !hasAiZone) {
         const errorMsg = missing.length > 0 
           ? `App.jsx missing required components: ${missing.join(', ')}` 
-          : `App.jsx is missing the hidden components container`;
+          : !hasHiddenContainer
+            ? `App.jsx is missing the hidden components container`
+            : `App.jsx is missing the ai-components injection zone`;
           
         log('pre-commit-validation', 'error', errorMsg);
         await rollbackBranch(git, branchName);
