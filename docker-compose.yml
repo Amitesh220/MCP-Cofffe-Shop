@@ -65,6 +65,19 @@ services:
       - coffee-net
     restart: unless-stopped
 
+  deployment-service:
+    build:
+      context: ./deployment-service
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    networks:
+      - coffee-net
+    restart: unless-stopped
+
   openwebui:
     build:
       context: ./openwebui

@@ -333,12 +333,17 @@ async function runUIPipeline(parsed, originalCommand) {
     // Step 5.5: Rebuild Docker containers and wait for health
     try {
       log('rebuild', 'pending', 'Rebuilding frontend and backend containers...');
-      console.log('🐳 [UI-PIPELINE] Running docker compose up -d --build --force-recreate frontend backend');
+      console.log('🐳 [UI-PIPELINE] Calling deployment-service via HTTP API');
       
-      execSync('docker compose up -d --build --force-recreate frontend backend', { 
-        cwd: repoDir,
-        stdio: 'ignore'
+      const deployRes = await fetch('http://deployment-service:5000/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
       });
+      
+      const deployData = await deployRes.json();
+      if (!deployRes.ok || !deployData.success) {
+        throw new Error(deployData.error || `Deployment service returned ${deployRes.status}`);
+      }
       log('rebuild', 'success', 'Containers rebuilt and starting');
 
       // Wait for services to become healthy
@@ -376,7 +381,6 @@ async function runUIPipeline(parsed, originalCommand) {
       }
     } catch (err) {
       log('rebuild', 'error', `Rebuild or health check failed: ${err.message}`);
-      await rollbackBranch(git, branchName);
       return {
         status: 'ERROR',
         error: `Pipeline failed during docker rebuild/healthcheck: ${err.message}`,
