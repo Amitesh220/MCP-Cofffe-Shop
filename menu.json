@@ -20,13 +20,18 @@
     "available": true
   },
   {
-    "name": "Burger",
-    "price": 200,
+    "name": "Cookies",
+    "price": 60,
+    "available": false
+  },
+  {
+    "name": "Icecream",
+    "price": 150,
     "available": true
   },
   {
-    "name": "Cookies",
-    "price": 60,
+    "name": "Smoothie",
+    "price": 200,
     "available": true
   }
 ]
