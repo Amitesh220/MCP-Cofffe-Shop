@@ -8,7 +8,9 @@ app.post("/deploy", (req, res) => {
   console.log("🚀 Deployment triggered");
 
   exec(
-    "docker compose up -d --build --force-recreate frontend backend",
+    `docker compose stop frontend backend &&
+     docker compose rm -f frontend backend &&
+     docker compose up -d --build frontend backend`,
     { cwd: "/workspace" },
     (error, stdout, stderr) => {
       if (error) {
