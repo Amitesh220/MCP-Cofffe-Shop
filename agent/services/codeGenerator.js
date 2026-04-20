@@ -36,7 +36,7 @@ RULES:
 7. Add smooth transitions and hover effects using Tailwind.
 8. Make it responsive using Tailwind breakpoints.
 9. Do NOT use any external libraries/dependencies.
-10. Compatible with existing layout. No breaking changes. No explanations.
+10. Do NOT modify or remove any existing components. Only create a new component and integrate it safely into the existing structure. No explanations.
 11. Return ONLY valid JSON, no markdown, no code fences`;
 
 const STYLE_UPDATE_PROMPT = `You are a CSS expert modifying styles for a coffee shop web application.

@@ -275,6 +275,20 @@ async function runUIPipeline(parsed, originalCommand) {
           timestamp: new Date().toISOString()
         };
       }
+
+      // Validate JSX syntax of final App.jsx
+      const appValidation = validateJSX(finalAppContent);
+      if (!appValidation.valid) {
+        log('pre-commit-validation', 'error', `App.jsx syntax error: ${appValidation.errors.join(', ')}`);
+        await rollbackBranch(git, branchName);
+        return {
+          status: 'ERROR',
+          error: `Pre-commit validation failed: App.jsx syntax error: ${appValidation.errors.join(', ')}`,
+          results,
+          steps,
+          timestamp: new Date().toISOString()
+        };
+      }
     }
 
     // Step 4: Commit changes
