@@ -1,7 +1,7 @@
 [
   {
     "name": "Coffee",
-    "price": 130,
+    "price": 100,
     "available": true
   },
   {
@@ -17,6 +17,16 @@
   {
     "name": "Cappuccino",
     "price": 130,
+    "available": true
+  },
+  {
+    "name": "Burger",
+    "price": 200,
+    "available": true
+  },
+  {
+    "name": "Cookies",
+    "price": 60,
     "available": true
   }
 ]
