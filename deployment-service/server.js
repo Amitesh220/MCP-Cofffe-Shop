@@ -11,8 +11,9 @@ app.post("/deploy", (req, res) => {
     `docker ps -a | grep workspace | awk '{print $1}' | xargs -r docker rm -f;
      docker network prune -f;
      cd /opt/MCP-Cofffe-Shop &&
-     docker compose -p mcp-cofffe-shop down &&
-     docker compose -p mcp-cofffe-shop up -d --build`,
+     docker compose -p mcp-cofffe-shop stop frontend backend &&
+     docker compose -p mcp-cofffe-shop rm -f frontend backend &&
+     docker compose -p mcp-cofffe-shop up -d --build frontend backend`,
     { cwd: "/opt/MCP-Cofffe-Shop" },
     (error, stdout, stderr) => {
       if (error) {
