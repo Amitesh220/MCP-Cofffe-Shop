@@ -20,11 +20,6 @@
     "available": true
   },
   {
-    "name": "Burger",
-    "price": 200,
-    "available": true
-  },
-  {
     "name": "Cookies",
     "price": 60,
     "available": true
