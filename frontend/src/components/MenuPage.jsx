@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MenuCard from './MenuCard';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://backend:3000';
 
 function MenuPage() {
   const [menu, setMenu] = useState([]);
