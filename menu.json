@@ -28,5 +28,10 @@
     "name": "Cookies",
     "price": 60,
     "available": true
+  },
+  {
+    "name": "Icecream",
+    "price": 150,
+    "available": true
   }
 ]
