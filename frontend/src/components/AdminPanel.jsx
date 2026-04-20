@@ -22,7 +22,7 @@ function AdminPanel() {
     // Check menu
     fetch(`${API_BASE}/menu`)
       .then(r => r.json())
-      .then(data => setMenuCount(data.length))
+      .then(data => setMenuCount(Array.isArray(data) ? data.length : 0))
       .catch(() => {});
 
     // Check agent

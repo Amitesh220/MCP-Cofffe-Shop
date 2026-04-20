@@ -14,7 +14,7 @@ function MenuPage() {
       const res = await fetch(`${API_BASE}/menu`);
       if (!res.ok) throw new Error('Failed to load menu');
       const data = await res.json();
-      setMenu(data);
+      setMenu(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -46,7 +46,7 @@ function MenuPage() {
       <section className="menu-section" id="menu-section">
         <div className="section-header">
           <h2>☕ Beverages</h2>
-          <span className="item-count">{menu.length} items</span>
+          <span className="item-count">{menu?.length || 0} items</span>
         </div>
 
         {loading && (
@@ -65,16 +65,16 @@ function MenuPage() {
           </div>
         )}
 
-        {!loading && !error && menu.length === 0 && (
+        {!loading && !error && (!menu || menu.length === 0) && (
           <div className="empty-state">
             <p>No items on the menu yet. Ask the owner to add some!</p>
           </div>
         )}
 
-        {!loading && !error && menu.length > 0 && (
+        {!loading && !error && menu?.length > 0 && (
           <div className="menu-grid">
-            {menu.map((item, index) => (
-              <MenuCard key={item.name} item={item} index={index} />
+            {menu?.map((item, index) => (
+              <MenuCard key={item?.name || index} item={item} index={index} />
             ))}
           </div>
         )}

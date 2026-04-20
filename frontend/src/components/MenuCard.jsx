@@ -3,22 +3,27 @@ import React from 'react';
 function MenuCard({ item, index }) {
   const icons = ['☕', '🍵', '🥤', '🧋', '🍶', '🫖', '🥛', '🍹'];
   const icon = icons[index % icons.length];
+  
+  const itemName = item?.name || 'Unknown Item';
+  const itemAvailable = item?.available ?? false;
+  const itemPrice = item?.price || 0;
 
   return (
     <div
-      className={`menu-card fade-in ${!item.available ? 'unavailable' : ''}`}
+      className={`menu-card fade-in ${!itemAvailable ? 'unavailable' : ''}`}
       style={{ animationDelay: `${index * 0.08}s` }}
-      id={`menu-item-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+      id={`menu-item-${itemName.toLowerCase().replace(/\s+/g, '-')}`}
+      data-mcp-core="MenuCard"
     >
       <div className="card-top">
         <div className="card-icon">{icon}</div>
-        <span className={`availability-badge ${item.available ? 'available' : 'unavailable'}`}>
-          {item.available ? '● Available' : '● Sold Out'}
+        <span className={`availability-badge ${itemAvailable ? 'available' : 'unavailable'}`}>
+          {itemAvailable ? '● Available' : '● Sold Out'}
         </span>
       </div>
-      <div className="card-name">{item.name}</div>
+      <div className="card-name">{itemName}</div>
       <div className="card-price">
-        <span className="currency">₹</span>{item.price}
+        <span className="currency">₹</span>{itemPrice}
       </div>
     </div>
   );

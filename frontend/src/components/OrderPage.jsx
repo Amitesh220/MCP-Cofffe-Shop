@@ -14,13 +14,14 @@ function OrderPage() {
     fetch(`${API_BASE}/menu`)
       .then(r => r.json())
       .then(data => {
-        setMenu(data.filter(i => i.available));
+        setMenu(Array.isArray(data) ? data.filter(i => i?.available) : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
   const toggleItem = (name) => {
+    if (!name) return;
     setSelectedItems(prev =>
       prev.includes(name) ? prev.filter(i => i !== name) : [...prev, name]
     );
@@ -28,8 +29,8 @@ function OrderPage() {
 
   const getTotal = () => {
     return selectedItems.reduce((sum, name) => {
-      const item = menu.find(m => m.name === name);
-      return sum + (item ? item.price : 0);
+      const item = menu?.find(m => m?.name === name);
+      return sum + (item?.price || 0);
     }, 0);
   };
 
@@ -67,8 +68,8 @@ function OrderPage() {
           <div className="order-confirmation fade-in">
             <div className="check-icon">✅</div>
             <h3>Order Confirmed!</h3>
-            <p>Thank you, {order.customerName}! Your order of {order.items.length} item(s) totaling ₹{order.total} has been placed.</p>
-            <div className="order-id">Order ID: {order.id}</div>
+            <p>Thank you, {order?.customerName}! Your order of {order?.items?.length || 0} item(s) totaling ₹{order?.total || 0} has been placed.</p>
+            <div className="order-id">Order ID: {order?.id}</div>
             <button
               className="btn btn-primary"
               style={{ width: 'auto', padding: '0.75rem 2rem', marginTop: '1.5rem' }}
@@ -92,6 +93,10 @@ function OrderPage() {
             <div className="spinner"></div>
             <p>Loading menu...</p>
           </div>
+        ) : (!menu || menu.length === 0) ? (
+          <div className="empty-state">
+            <p>No items available to order right now.</p>
+          </div>
         ) : (
           <div className="order-form fade-in">
             <div className="form-group">
@@ -108,23 +113,27 @@ function OrderPage() {
             <div className="form-group">
               <label>Select Items</label>
               <div className="checkbox-group">
-                {menu.map(item => (
-                  <label
-                    key={item.name}
-                    className={`checkbox-item ${selectedItems.includes(item.name) ? 'selected' : ''}`}
-                    id={`order-item-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(item.name)}
-                      onChange={() => toggleItem(item.name)}
-                    />
-                    <div className="item-info">
-                      <span className="item-name">{item.name}</span>
-                      <span className="item-price">₹{item.price}</span>
-                    </div>
-                  </label>
-                ))}
+                {menu?.map((item, index) => {
+                  const itemName = item?.name || `Unknown-${index}`;
+                  const itemPrice = item?.price || 0;
+                  return (
+                    <label
+                      key={itemName}
+                      className={`checkbox-item ${selectedItems.includes(itemName) ? 'selected' : ''}`}
+                      id={`order-item-${itemName.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(itemName)}
+                        onChange={() => toggleItem(itemName)}
+                      />
+                      <div className="item-info">
+                        <span className="item-name">{itemName}</span>
+                        <span className="item-price">₹{itemPrice}</span>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
