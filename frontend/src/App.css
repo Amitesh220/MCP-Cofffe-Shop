@@ -708,3 +708,46 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+
+/* ── HeroSection ──────────────────────────── */
+.hero-section {
+  background-color: #16213e;
+  color: #eee;
+  padding: 50px 20px;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.hero-section:hover {
+  background-color: #0f3460;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+.hero-title:hover {
+  color: #e94560;
+}
+
+.hero-message {
+  font-size: 1.5rem;
+  margin-top: 10px;
+  transition: color 0.3s ease;
+}
+
+.hero-message:hover {
+  color: #aaa;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  .hero-message {
+    font-size: 1.2rem;
+  }
+}
