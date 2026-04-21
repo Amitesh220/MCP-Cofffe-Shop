@@ -6,7 +6,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: false,
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name]-[hash].js`,
@@ -21,8 +20,8 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',    // allow external connections
-    port: 5173,
-    strictPort: true,
+    port: 5174,
+    strictPort: false,
     cors: true,        // allow cross-origin
     allowedHosts: 'all',
     proxy: {

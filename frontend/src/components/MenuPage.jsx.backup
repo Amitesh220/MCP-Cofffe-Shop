@@ -46,7 +46,14 @@ function MenuPage() {
   return (
     <div className="container">
       {/* Hero section */}
-<HeroSection />
+      <section className="hero">
+        <h1>Our Menu</h1>
+        <p>Freshly brewed beverages crafted with passion. Our menu evolves with AI-powered updates.</p>
+        <div className="ai-badge">
+          <div className="pulse"></div>
+          AI-Powered · Auto-Updating
+        </div>
+      </section>
 
       {/* Menu items */}
       <section className="menu-section" id="menu-section">
