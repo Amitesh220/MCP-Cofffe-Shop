@@ -382,8 +382,8 @@ async function runUIPipeline(payload) {
         
         if (!frontendReady) {
           try {
-            const res = await fetch(`${FRONTEND_URL}`);
-            if (res.status === 200) frontendReady = true;
+            execSync('curl -s http://frontend:80 > /dev/null');
+            frontendReady = true;
           } catch (e) { /* ignore */ }
         }
 
