@@ -7,6 +7,7 @@ services:
       dockerfile: Dockerfile
       args:
         CACHE_BUST: ${CACHE_BUST:-default}
+    mem_limit: 200m
     ports:
       - "5173:80"
     environment:
@@ -32,10 +33,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 512m
+    mem_limit: 300m
     env_file:
       - .env
     environment:
@@ -51,6 +49,7 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile
+    mem_limit: 300m
     ports:
       - "3001:3001"
     env_file:

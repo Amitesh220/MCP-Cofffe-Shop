@@ -86,12 +86,12 @@ app.post("/deploy", async (req, res) => {
     console.log(`✅ Build validated: dist folder exists`);
 
     // Step 3: Force Clean Docker Build
-    console.log('🚀 Rebuilding containers...');
+    console.log('🚀 Rebuilding frontend container...');
     await executeCommand(
-      'docker compose down && docker compose build --no-cache && docker compose up -d',
+      'docker compose build frontend --no-cache && docker compose up -d frontend && sleep 5',
       '/opt/MCP-Cofffe-Shop'
     );
-    console.log('✅ Containers are running');
+    console.log('✅ Frontend container is running');
 
     // Step 4: Add deployment verification
     console.log('🔍 Verifying frontend health...');
