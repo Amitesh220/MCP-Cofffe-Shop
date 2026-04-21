@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import MenuCard from './MenuCard';
+import HeroSection from './HeroSection';
+import HeroSection from './HeroSection';
 
 const API_BASE =
   window.location.hostname === "localhost" || window.location.hostname === "3.107.182.204"
