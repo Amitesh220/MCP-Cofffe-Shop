@@ -5,6 +5,7 @@ import MenuPage from './components/MenuPage';
 import MenuCard from './components/MenuCard';
 import OrderPage from './components/OrderPage';
 import AdminPanel from './components/AdminPanel';
+import CappuccinoCard from './components/CappuccinoCard';
 
 // Prevent tree-shaking by creating a constant array referencing all core components
 const CORE_COMPONENTS = [Navbar, MenuPage, MenuCard, OrderPage, AdminPanel];
@@ -67,6 +68,7 @@ function App() {
         <Navbar />
       </div>
       <div className="page-wrapper">
+        <CappuccinoCard />
         <Routes>
           <Route path="/" element={<div data-mcp-core="MenuPage"><MenuPage /></div>} />
           <Route path="/order" element={<div data-mcp-core="OrderPage"><OrderPage /></div>} />
