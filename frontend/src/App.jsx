@@ -41,7 +41,7 @@ function App() {
           try {
             data = JSON.parse(text);
           } catch {
-            throw new Error("Invalid backend response");
+            throw new Error("Invalid JSON response");
           }
           const newVersion = data.deployment_version || '0';
           

@@ -24,7 +24,7 @@ function AdminPanel() {
         try {
           data = JSON.parse(text);
         } catch {
-          throw new Error("Invalid backend response");
+          throw new Error("Invalid JSON response");
         }
         setServices(s => ({ ...s, [serviceName]: 'online' }));
       } catch {
@@ -45,7 +45,7 @@ function AdminPanel() {
         try {
           data = JSON.parse(text);
         } catch {
-          throw new Error("Invalid backend response");
+          throw new Error("Invalid JSON response");
         }
         setMenuCount(Array.isArray(data) ? data.length : 0);
       } catch (err) {
@@ -77,7 +77,7 @@ function AdminPanel() {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Invalid backend response");
+        throw new Error("Invalid JSON response");
       }
       if (data.status === 'PASS') {
         addLog(`Tests PASSED — ${data.results?.length || 0} tests run`, 'success');

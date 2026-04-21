@@ -23,7 +23,7 @@ function MenuPage() {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Backend returned HTML instead of JSON");
+        throw new Error("Invalid JSON response");
       }
       
       setMenu(Array.isArray(data) ? data : []);

@@ -28,7 +28,10 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // through the git pipeline.
 // ══════════════════════════════════════════════════════════════
 
-async function runUIPipeline(parsed, originalCommand) {
+async function runUIPipeline(payload) {
+  const parsed = payload.parsed || payload;
+  const originalCommand = payload.originalCommand || "";
+
   const timestamp = Date.now();
   const branchName = `ui-update-${timestamp}`;
   const steps = [];

@@ -23,7 +23,7 @@ function OrderPage() {
         try {
           data = JSON.parse(text);
         } catch {
-          throw new Error("Backend returned HTML instead of JSON");
+          throw new Error("Invalid JSON response");
         }
         setMenu(Array.isArray(data) ? data.filter(i => i?.available) : []);
         setLoading(false);
@@ -65,7 +65,7 @@ function OrderPage() {
       try {
         data = JSON.parse(text);
       } catch {
-        throw new Error("Invalid backend response");
+        throw new Error("Invalid JSON response");
       }
       if (res.ok) {
         setOrder(data);

@@ -86,43 +86,11 @@ app.post('/run-pipeline', async (req, res) => {
 
 // ── UI Pipeline (NEW) ───────────────────────────────────────
 app.post('/run-ui-pipeline', async (req, res) => {
-  const { parsed, originalCommand } = req.body;
+  console.log("Running UI pipeline");
 
-  if (!parsed || !parsed.actions) {
-    return res.status(400).json({ error: 'Parsed actions required' });
-  }
+  const result = await runUIPipeline(req.body);
 
-  // Reject if pipeline already running
-  if (isRunning) {
-    res.json({ status: "ignored", message: "Pipeline already running" });
-    return;
-  }
-
-  isRunning = true;
-
-  console.log(`\n${'═'.repeat(60)}`);
-  console.log(`🎨 [PIPELINE] Starting UI pipeline`);
-  console.log(`   Intent: ${parsed.intent}`);
-  console.log(`   Actions: ${parsed.actions.length}`);
-  console.log(`   Original command: "${originalCommand}"`);
-  console.log(`${'═'.repeat(60)}`);
-
-  try {
-    const result = await runUIPipeline(parsed, originalCommand);
-    console.log(`\n✅ [UI-PIPELINE] Completed with status: ${result.status}`);
-    console.log(`${'═'.repeat(60)}\n`);
-    res.json(result);
-  } catch (err) {
-    console.error(`\n❌ [UI-PIPELINE] Failed: ${err.message}`);
-    console.log(`${'═'.repeat(60)}\n`);
-    res.status(500).json({
-      status: 'ERROR',
-      category: 'UI',
-      error: err.message
-    });
-  } finally {
-    isRunning = false;
-  }
+  res.json({ status: "success", result });
 });
 
 // ── SYSTEM Pipeline (NEW) ───────────────────────────────────

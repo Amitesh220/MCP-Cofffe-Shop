@@ -4,25 +4,23 @@ const router = express.Router();
 
 const AGENT_URL = process.env.AGENT_URL || 'http://localhost:3001';
 const CATEGORY_ENDPOINTS = {
-  DATA:     '/run-pipeline',
-  UI:       '/run-ui-pipeline',
-  SYSTEM:   '/run-system-pipeline',
-  ANALYSIS: '/analyze'
+  MENU: "http://agent:3001/run-pipeline",
+  UI: "http://agent:3001/run-ui-pipeline",
+  API: "http://agent:3001/run-api-pipeline",
+  DEFAULT: "http://agent:3001/run-pipeline"
 };
 
 
 // ── Duplicate Detection & Pipeline Lock ──────────────────────
-let lastCommand = null;
+let isRunning = false;
 
 // POST /owner-command — accept natural language input from owner
 router.post('/', async (req, res) => {
-  const command = req.body.command;
-
-  if (command === lastCommand) {
-    return res.json({ message: "Duplicate ignored" });
+  if (isRunning) {
+    return res.json({ status: "ignored", message: "Pipeline already running" });
   }
 
-  lastCommand = command;
+  isRunning = true;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // FIX #5: PIPELINE LOCK
@@ -66,16 +64,9 @@ router.post('/', async (req, res) => {
     }
 
     // Step 4: Route to appropriate agent endpoint based on category
-    const endpoint = CATEGORY_ENDPOINTS[parsed.category];
-    if (!endpoint) {
-      console.log(`❌ [AI] Unknown category: ${parsed.category}`);
-            return res.status(400).json({
-        status: 'INVALID_CATEGORY',
-        command,
-        category: parsed.category,
-        error: `Unknown category: ${parsed.category}`
-      });
-    }
+    const endpoint =
+      CATEGORY_ENDPOINTS[parsed.category] ||
+      CATEGORY_ENDPOINTS.DEFAULT;
 
     console.log(`\n🚀 [PIPELINE] Routing to ${parsed.category} handler: ${endpoint}`);
 
@@ -93,8 +84,8 @@ router.post('/', async (req, res) => {
     }
 
     // Step 5: Trigger agent pipeline
-    console.log(`🚀 [PIPELINE] Triggering agent service at ${AGENT_URL}${endpoint}...`);
-    const agentResponse = await fetch(`${AGENT_URL}${endpoint}`, {
+    console.log(`🚀 [PIPELINE] Triggering agent service at ${endpoint}...`);
+    const agentResponse = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(agentPayload)
@@ -103,37 +94,20 @@ router.post('/', async (req, res) => {
     const agentResult = await agentResponse.json();
     console.log(`🚀 [PIPELINE] Agent result status: ${agentResult.status}`);
 
-    // Step 6: Return enriched result
-    const result = {
-      status: agentResult.status || 'COMPLETED',
+    res.json({
+      status: "success",
       category: parsed.category,
-      intent: parsed.intent,
-      confidence: parsed.confidence,
-      command,
-      parsedAction: parsed,
-      pipeline: agentResult,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log(`\n✅ [OWNER COMMAND] Pipeline completed — Category: ${parsed.category}, Status: ${result.status}`);
-    console.log(`🔒 [LOCK] Pipeline released`);
-    console.log(`${'═'.repeat(60)}\n`);
-
-    // Release lock
-
-    res.json(result);
-  } catch (err) {
-    console.error(`\n❌ [OWNER COMMAND] Pipeline failed: ${err.message}`);
-    console.log(`🔒 [LOCK] Pipeline released (error)`);
-    console.log(`${'═'.repeat(60)}\n`);
-
-    // Release lock
-
-    res.status(500).json({
-      status: 'ERROR',
-      command,
-      error: err.message
+      message: "Pipeline executed"
     });
+  } catch (error) {
+    console.error(`\n❌ [OWNER COMMAND] Pipeline failed: ${error.message}`);
+    
+    res.status(500).json({
+      status: "error",
+      message: error.message
+    });
+  } finally {
+    isRunning = false;
   }
 });
 
