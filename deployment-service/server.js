@@ -69,7 +69,7 @@ app.post("/deploy", async (req, res) => {
 
     console.log('🔨 Building frontend...');
     await executeCommand(
-      'cd /app/workspace/repo/frontend && npm install && npm run build',
+      'cd /app/workspace/repo/frontend && npm install && rm -rf dist && npm run build',
       '/'
     );
     console.log('✅ Frontend build complete');
@@ -95,7 +95,7 @@ app.post("/deploy", async (req, res) => {
 
     // Step 4: Add deployment verification
     console.log('🔍 Verifying frontend health...');
-    await executeCommand('curl -s http://frontend:80 || exit 1', '/').catch(() => {
+    await executeCommand('curl -s http://frontend || exit 1', '/').catch(() => {
       throw new Error("Frontend verification failed");
     });
 
