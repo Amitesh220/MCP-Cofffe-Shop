@@ -108,10 +108,15 @@ async function ensureRepo() {
       console.warn(`⚠️  [GIT] Could not update remote URL: ${err.message}`);
     }
 
-    await git.pull('origin', 'main').catch(() => {
-      console.log('⚠️  [GIT] Pull failed, continuing with local state');
-    });
-    console.log('✅ [GIT] Repository ready (pulled)');
+    try {
+      await git.fetch('origin');
+      await git.reset(['--hard', 'origin/main']);
+      await git.clean('f', ['-d']);
+      console.log('✅ [GIT] Repository ready (pulled)');
+    } catch (err) {
+      console.error(`❌ [GIT] Sync failed: ${err.message}`);
+      throw new Error(`Git sync failed: ${err.message}`);
+    }
     return { git, repoDir, localMode: false };
   } else {
     console.log(`📥 [GIT] Cloning repository...`);

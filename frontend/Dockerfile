@@ -15,4 +15,4 @@ RUN if [ ! -d "dist" ]; then \
 
 RUN npm install -g serve
 
-CMD ["serve", "-s", "dist", "-l", "80"]
+CMD ["serve", "-s", "dist", "-l", "80", "--no-cache"]

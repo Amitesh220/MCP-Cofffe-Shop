@@ -60,7 +60,13 @@ app.post("/deploy", async (req, res) => {
   console.log("🚀 Deployment triggered");
   
   try {
-    // Step 1: Build frontend only
+    // Step 1: Force deployment from latest code
+    console.log('📥 Syncing host repository...');
+    await executeCommand(
+      'git fetch origin && git reset --hard origin/main',
+      '/opt/MCP-Cofffe-Shop'
+    );
+
     console.log('🔨 Building frontend...');
     await executeCommand(
       'cd /app/workspace/repo/frontend && npm install && npm run build',
@@ -79,15 +85,21 @@ app.post("/deploy", async (req, res) => {
     
     console.log(`✅ Build validated: dist folder exists`);
 
-    // Step 3: Restart frontend container
-    console.log('🚀 Starting frontend...');
+    // Step 3: Force Clean Docker Build
+    console.log('🚀 Rebuilding containers...');
     await executeCommand(
-      'docker compose up -d --build frontend',
+      'docker compose down && docker compose build --no-cache && docker compose up -d',
       '/opt/MCP-Cofffe-Shop'
     );
-    console.log('✅ Frontend is running');
+    console.log('✅ Containers are running');
 
-    // Step 4: Wait for backend to be healthy
+    // Step 4: Add deployment verification
+    console.log('🔍 Verifying frontend health...');
+    await executeCommand('curl -s http://frontend:80 || exit 1', '/').catch(() => {
+      throw new Error("Frontend verification failed");
+    });
+
+    // Step 5: Wait for backend to be healthy
     await waitForBackendHealth();
 
     // Step 5: Notify backend of new deployment (FIX #9)

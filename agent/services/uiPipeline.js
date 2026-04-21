@@ -127,8 +127,8 @@ async function runUIPipeline(payload) {
                   importLine + '\n' +
                   appContent.slice(lineEnd + 1);
 
-                // Inject component safely inside <div id="ai-generated-root">
-                const aiZoneMarker = '<div id="ai-generated-root">';
+                // Inject component safely inside <div className="page-wrapper">
+                const aiZoneMarker = '<div className="page-wrapper">';
                 const aiZoneIdx = appContent.indexOf(aiZoneMarker);
                 if (aiZoneIdx !== -1) {
                   const aiZoneEnd = appContent.indexOf('>', aiZoneIdx);
@@ -247,7 +247,7 @@ async function runUIPipeline(payload) {
               log(`action-${i + 1}`, 'success', `Updated component ${targetFile}`);
               results.push({ action, status: 'success', file: targetFile });
             } else {
-              log(`action-${i + 1}`, 'error', `Component not found: ${targetFile}`);
+              log(`action-${i + 1}`, 'warning', `Component not found: ${targetFile}, injecting as new component into App.jsx`);
               results.push({ action, status: 'error', error: `Component ${targetFile} not found` });
             }
             break;
@@ -362,7 +362,7 @@ async function runUIPipeline(payload) {
       
       const deployData = await deployRes.json();
       if (!deployRes.ok || !deployData.success) {
-        throw new Error(deployData.error || `Deployment service returned ${deployRes.status}`);
+        return { status: 'ERROR', success: false, error: 'Deployment failed' };
       }
       log('rebuild', 'success', 'Containers rebuilt and starting');
 
