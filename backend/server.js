@@ -47,6 +47,7 @@ app.post('/deployment/notify', (req, res) => {
   deploymentVersion = Math.floor(Date.now() / 1000);
   console.log(`📢 [DEPLOYMENT] Version updated to ${deploymentVersion}`);
   res.json({ deployment_version: deploymentVersion });
+});
 app.use((err, req, res, next) => {
   console.error('❌ [BACKEND ERROR]', err.message);
   
