@@ -10,6 +10,9 @@ const ownerCommandRoutes = require('./routes/ownerCommand');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Deployment Version Tracking (for FIX #9) ────────────────
+let deploymentVersion = Math.floor(Date.now() / 1000);
+
 // ── Middleware ───────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
@@ -29,21 +32,21 @@ app.use('/menu', menuRoutes);
 app.use('/order', orderRoutes);
 app.use('/owner-command', ownerCommandRoutes);
 
-// ── Health Check ────────────────────────────────────────────
+// ── Health Check (includes deployment version for FIX #9) ────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'backend', timestamp: new Date().toISOString() });
-});
-
-// ── 404 Handler (returns JSON, not HTML) ────────────────────
-app.use((req, res) => {
-  res.status(404).json({
-    status: 'not_found',
-    message: `Endpoint ${req.method} ${req.path} not found`,
+  res.json({
+    status: 'ok',
+    service: 'backend',
+    deployment_version: deploymentVersion,
     timestamp: new Date().toISOString()
   });
 });
 
-// ── Error Handler (ensures all errors return JSON) ──────────
+// ── API endpoint to update deployment version after deploy ──
+app.post('/deployment/notify', (req, res) => {
+  deploymentVersion = Math.floor(Date.now() / 1000);
+  console.log(`📢 [DEPLOYMENT] Version updated to ${deploymentVersion}`);
+  res.json({ deployment_version: deploymentVersion });
 app.use((err, req, res, next) => {
   console.error('❌ [BACKEND ERROR]', err.message);
   

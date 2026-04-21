@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://backend:3000';
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "3.107.182.204"
+    ? "http://3.107.182.204:3000"
+    : "http://backend:3000";
 
 function AdminPanel() {
   const [services, setServices] = useState({
@@ -13,11 +16,25 @@ function AdminPanel() {
   const [menuCount, setMenuCount] = useState(0);
 
   useEffect(() => {
-    // Check backend health
-    fetch(`${API_BASE}/health`)
-      .then(r => r.json())
-      .then(() => setServices(s => ({ ...s, backend: 'online' })))
-      .catch(() => setServices(s => ({ ...s, backend: 'offline' })));
+    const checkService = async (url, serviceName) => {
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error("Invalid backend response");
+        }
+        setServices(s => ({ ...s, [serviceName]: 'online' }));
+      } catch {
+        setServices(s => ({ ...s, [serviceName]: 'offline' }));
+      }
+    };
+
+    checkService(`${API_BASE}/health`, 'backend');
+    checkService(`${API_BASE}/agent/health`, 'agent');
+    checkService(`${API_BASE}/mcp/health`, 'mcp');
 
     // Check menu safely
     const fetchMenuSafely = async () => {
@@ -28,7 +45,7 @@ function AdminPanel() {
         try {
           data = JSON.parse(text);
         } catch {
-          throw new Error("Backend returned HTML instead of JSON");
+          throw new Error("Invalid backend response");
         }
         setMenuCount(Array.isArray(data) ? data.length : 0);
       } catch (err) {
@@ -36,18 +53,6 @@ function AdminPanel() {
       }
     };
     fetchMenuSafely();
-
-    // Check agent
-    fetch(`${API_BASE}/agent/health`)
-      .then(r => r.json())
-      .then(() => setServices(s => ({ ...s, agent: 'online' })))
-      .catch(() => setServices(s => ({ ...s, agent: 'offline' })));
-
-    // Check MCP
-    fetch(`${API_BASE}/mcp/health`)
-      .then(r => r.json())
-      .then(() => setServices(s => ({ ...s, mcp: 'online' })))
-      .catch(() => setServices(s => ({ ...s, mcp: 'offline' })));
 
     // Sample logs
     setLogs([
@@ -67,7 +72,13 @@ function AdminPanel() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid backend response");
+      }
       if (data.status === 'PASS') {
         addLog(`Tests PASSED — ${data.results?.length || 0} tests run`, 'success');
       } else {

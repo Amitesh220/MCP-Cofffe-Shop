@@ -11,46 +11,60 @@ import HeroSection from './components/HeroSection';
 const CORE_COMPONENTS = [Navbar, MenuPage, MenuCard, OrderPage, AdminPanel];
 
 function App() {
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [deploymentVersion, setDeploymentVersion] = useState(0);
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FIX #9: Force Frontend Refresh After Deploy
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
-    // Check for UI updates every 15 seconds by polling a cache-busting endpoint
-    // This ensures fresh UI changes are detected after deployment
-    const updateCheckInterval = setInterval(async () => {
+    // Store the initial deployment timestamp
+    const initialVersion = localStorage.getItem('deploymentVersion') || '0';
+    setDeploymentVersion(parseInt(initialVersion));
+
+    // Poll backend every 10 seconds to detect new deployments
+    const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://backend:3000'}/health?t=${Date.now()}`,
-          { cache: 'no-store' }
-        );
+        const apiBase =
+          window.location.hostname === "localhost" || window.location.hostname === "3.107.182.204"
+            ? "http://3.107.182.204:3000"
+            : "http://backend:3000";
+
+        // Add cache-busting to ensure we get fresh response
+        const response = await fetch(`${apiBase}/health?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Pragma': 'no-cache' }
+        });
+
         if (response.ok) {
-          // Optionally refresh if backend indicates changes
-          // For now, we rely on the browser cache-busting from hashed filenames
+          const text = await response.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            throw new Error("Invalid backend response");
+          }
+          const newVersion = data.deployment_version || '0';
+          
+          // If deployment version changed, reload the page
+          if (parseInt(newVersion) > parseInt(initialVersion)) {
+            console.log('🔄 New deployment detected, reloading...');
+            localStorage.setItem('deploymentVersion', newVersion);
+            // Force hard reload to get new JS bundles
+            window.location.href = `${window.location.href.split('?')[0]}?t=${Date.now()}`;
+          }
         }
       } catch (e) {
         // Backend unreachable, will retry
       }
-    }, 15000);
+    }, 10000);
 
-    // Listen for storage events to sync across tabs
-    const handleStorageChange = (e) => {
-      if (e.key === 'uiUpdated') {
-        console.log('🔄 UI update detected in another tab, reloading...');
-        window.location.reload();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      clearInterval(updateCheckInterval);
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    return () => clearInterval(pollInterval);
   }, []);
 
   return (
     <Router>
       {/* ═══ PROTECTED ZONE: CORE LAYOUT ═══ DO NOT MODIFY ═══ */}
-      <div data-mcp-core="Navbar" key={lastUpdated}>
+      <div data-mcp-core="Navbar">
         <Navbar />
       </div>
       <div className="page-wrapper">
@@ -63,7 +77,7 @@ function App() {
       {/* ═══ END PROTECTED ZONE ═══ */}
 
       {/* ═══ AI INJECTION ZONE: New components go here ═══ */}
-      <div id="ai-generated-root" key={`ai-${lastUpdated}`}>
+      <div id="ai-generated-root">
         <HeroSection />
       </div>
       {/* ═══ END AI INJECTION ZONE ═══ */}

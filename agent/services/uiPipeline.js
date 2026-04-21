@@ -419,8 +419,15 @@ async function runUIPipeline(parsed, originalCommand) {
         
         log('build-validation', 'success', validationData.message || 'Build artifacts validated');
       } catch (validationErr) {
-        log('build-validation', 'error', `Build validation warning: ${validationErr.message}`);
-        // Don't fail pipeline on build validation errors, just warn
+        log('build-validation', 'error', `Build validation failed: ${validationErr.message}`);
+        await rollbackBranch(git, branchName);
+        return {
+          status: 'ERROR',
+          error: `Build validation failed: ${validationErr.message}`,
+          results,
+          steps,
+          timestamp: new Date().toISOString()
+        };
       }
     } catch (err) {
       log('rebuild', 'error', `Rebuild or health check failed: ${err.message}`);

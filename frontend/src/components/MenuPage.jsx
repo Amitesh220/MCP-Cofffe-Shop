@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import MenuCard from './MenuCard';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://backend:3000';
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "3.107.182.204"
+    ? "http://3.107.182.204:3000"
+    : "http://backend:3000";
 
 function MenuPage() {
   const [menu, setMenu] = useState([]);

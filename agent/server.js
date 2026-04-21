@@ -11,6 +11,11 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// ── FIX #5: Pipeline Execution Locks ────────────────────────
+let dataTaskRunning = false;
+let isRunning = false;
+let systemTaskRunning = false;
+
 // ── Request Logger ──────────────────────────────────────────
 app.use((req, res, next) => {
   console.log(`\n📥 [AGENT] ${req.method} ${req.url}`);
@@ -37,6 +42,15 @@ app.post('/run-pipeline', async (req, res) => {
     return res.status(400).json({ error: 'Action is required' });
   }
 
+  // Reject if pipeline already running
+  if (dataTaskRunning) {
+    console.log('⚠️  [LOCK] DATA pipeline already running');
+    return res.status(503).json({
+      status: 'BUSY',
+      error: 'Data pipeline is already running. Please wait for it to complete.'
+    });
+  }
+
   // Normalize: support both single action and array of actions
   const actionList = Array.isArray(action) ? action : [action];
   const actionSummary = actionList.map(a => `${a.action}:${a.name || '?'}`).join(', ');
@@ -47,6 +61,8 @@ app.post('/run-pipeline', async (req, res) => {
   console.log(`   Original command: "${originalCommand}"`);
   console.log(`${'═'.repeat(60)}`);
 
+  dataTaskRunning = true;
+
   try {
     const result = await runPipeline(action, originalCommand);
     console.log(`\n✅ [PIPELINE] Completed with status: ${result.status}`);
@@ -54,10 +70,12 @@ app.post('/run-pipeline', async (req, res) => {
       console.log(`   Actions processed: ${result.actionsProcessed}`);
     }
     console.log(`${'═'.repeat(60)}\n`);
+    dataTaskRunning = false;
     res.json(result);
   } catch (err) {
     console.error(`\n❌ [PIPELINE] Failed: ${err.message}`);
     console.log(`${'═'.repeat(60)}\n`);
+    dataTaskRunning = false;
     res.status(500).json({
       status: 'ERROR',
       error: err.message,
@@ -73,6 +91,14 @@ app.post('/run-ui-pipeline', async (req, res) => {
   if (!parsed || !parsed.actions) {
     return res.status(400).json({ error: 'Parsed actions required' });
   }
+
+  // Reject if pipeline already running
+  if (isRunning) {
+    res.json({ status: "ignored", message: "Pipeline already running" });
+    return;
+  }
+
+  isRunning = true;
 
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`🎨 [PIPELINE] Starting UI pipeline`);
@@ -94,6 +120,8 @@ app.post('/run-ui-pipeline', async (req, res) => {
       category: 'UI',
       error: err.message
     });
+  } finally {
+    isRunning = false;
   }
 });
 
@@ -105,6 +133,15 @@ app.post('/run-system-pipeline', async (req, res) => {
     return res.status(400).json({ error: 'Parsed actions required' });
   }
 
+  // Reject if pipeline already running
+  if (systemTaskRunning) {
+    console.log('⚠️  [LOCK] SYSTEM pipeline already running');
+    return res.status(503).json({
+      status: 'BUSY',
+      error: 'System pipeline is already running. Please wait for it to complete.'
+    });
+  }
+
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`⚙️  [PIPELINE] Starting SYSTEM pipeline`);
   console.log(`   Intent: ${parsed.intent}`);
@@ -112,14 +149,18 @@ app.post('/run-system-pipeline', async (req, res) => {
   console.log(`   Original command: "${originalCommand}"`);
   console.log(`${'═'.repeat(60)}`);
 
+  systemTaskRunning = true;
+
   try {
     const result = await runSystemPipeline(parsed, originalCommand);
     console.log(`\n✅ [SYSTEM-PIPELINE] Completed with status: ${result.status}`);
     console.log(`${'═'.repeat(60)}\n`);
+    systemTaskRunning = false;
     res.json(result);
   } catch (err) {
     console.error(`\n❌ [SYSTEM-PIPELINE] Failed: ${err.message}`);
     console.log(`${'═'.repeat(60)}\n`);
+    systemTaskRunning = false;
     res.status(500).json({
       status: 'ERROR',
       category: 'SYSTEM',

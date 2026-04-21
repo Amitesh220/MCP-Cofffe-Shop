@@ -6,54 +6,110 @@ import path from "path";
 const app = express();
 app.use(express.json());
 
-app.post("/deploy", (req, res) => {
+// Helper: execute command and wait for completion
+const executeCommand = (cmd, cwd) => {
+  return new Promise((resolve, reject) => {
+    exec(cmd, { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr || error.message));
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+};
+
+// Helper: wait for backend health
+const waitForBackendHealth = async (maxWait = 60000) => {
+  const startTime = Date.now();
+  console.log('⏳ Waiting for backend to become healthy...');
+  
+  while (Date.now() - startTime < maxWait) {
+    try {
+      const response = await fetch('http://localhost:3000/health');
+      if (response.ok) {
+        console.log('✅ Backend is healthy');
+        return true;
+      }
+    } catch (e) {
+      // Backend not ready yet
+    }
+    
+    // Wait 2 seconds before retrying
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  
+  throw new Error(`Backend health check timeout after ${maxWait}ms`);
+};
+
+app.post("/deploy", async (req, res) => {
   console.log("🚀 Deployment triggered");
   
-  const cachebustearg = Math.random().toString(36).substring(7);
+  try {
+    // Step 1: Build frontend only (--no-cache forces fresh build)
+    console.log('🔨 Building frontend...');
+    await executeCommand(
+      'docker compose build --no-cache frontend',
+      '/opt/MCP-Cofffe-Shop'
+    );
+    console.log('✅ Frontend build complete');
 
-  exec(
-    `docker ps -a | grep workspace | awk '{print $1}' | xargs -r docker rm -f;
-     docker network prune -f;
-     cd /opt/MCP-Cofffe-Shop &&
-     docker compose -p mcp-cofffe-shop stop frontend backend &&
-     docker compose -p mcp-cofffe-shop rm -f frontend backend &&
-     docker compose -p mcp-cofffe-shop build --no-cache --build-arg CACHE_BUST=${cachebustearg} frontend backend &&
-     docker compose -p mcp-cofffe-shop up -d frontend backend`,
-    { cwd: "/opt/MCP-Cofffe-Shop" },
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error("❌ Deployment failed:", stderr || error.message);
-        return res.status(500).json({ success: false, error: stderr || error.message });
-      }
+    // Step 2: Start frontend only
+    console.log('🚀 Starting frontend...');
+    await executeCommand(
+      'docker compose up -d frontend',
+      '/opt/MCP-Cofffe-Shop'
+    );
+    console.log('✅ Frontend is running');
 
-      console.log("✅ Deployment successful");
-      
-      // Validate that dist folder exists and has content
-      const distPath = "/opt/MCP-Cofffe-Shop/frontend/dist";
-      try {
-        if (fs.existsSync(distPath)) {
-          const files = fs.readdirSync(distPath);
-          console.log(`✅ Frontend dist has ${files.length} files/folders`);
-          res.json({ 
-            success: true, 
-            output: stdout,
-            distValidated: true,
-            fileCount: files.length
-          });
-        } else {
-          throw new Error("dist folder not found after build");
-        }
-      } catch (e) {
-        console.error("⚠️ Build validation warning:", e.message);
-        res.json({ 
-          success: true, 
-          output: stdout,
-          distValidated: false,
-          warning: e.message
-        });
-      }
+    // Step 3: Validate dist folder
+    console.log('🔍 Validating build artifacts...');
+    const distPath = "/opt/MCP-Cofffe-Shop/frontend/dist";
+    if (!fs.existsSync(distPath)) {
+      throw new Error("dist folder not found after build");
     }
-  );
+
+    const files = fs.readdirSync(distPath);
+    const indexPath = path.join(distPath, 'index.html');
+    if (!fs.existsSync(indexPath)) {
+      throw new Error("index.html not found in dist");
+    }
+
+    console.log(`✅ Build validated: ${files.length} files in dist/`);
+
+    // Step 4: Wait for backend to be healthy
+    await waitForBackendHealth();
+
+    // Step 5: Notify backend of new deployment (FIX #9)
+    try {
+      console.log('📢 Notifying backend of deployment...');
+      const notifyRes = await fetch('http://localhost:3000/deployment/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (notifyRes.ok) {
+        console.log('✅ Backend notified of deployment');
+      }
+    } catch (e) {
+      console.warn('⚠️ Could not notify backend:', e.message);
+    }
+
+    // SUCCESS
+    res.json({
+      success: true,
+      message: "Frontend deployed and validated",
+      distValidated: true,
+      fileCount: files.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("❌ Deployment failed:", error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 app.post("/validate-build", (req, res) => {
@@ -78,6 +134,50 @@ app.post("/validate-build", (req, res) => {
       errors.push("index.html not found in dist");
     } else {
       const indexContent = fs.readFileSync(indexPath, 'utf-8');
+      
+      // Verify JS bundles exist
+      const jsPattern = /<script[^>]+src="([^"]+\.js)"/g;
+      const jsMatches = [...indexContent.matchAll(jsPattern)];
+      if (jsMatches.length === 0) {
+        errors.push("No JavaScript bundles found in index.html");
+      } else {
+        console.log(`✅ Found ${jsMatches.length} JavaScript bundle(s)`);
+      }
+      
+      // Check for specific components if provided
+      if (components && Array.isArray(components)) {
+        for (const comp of components) {
+          if (!indexContent.includes(comp)) {
+            errors.push(`Component "${comp}" not found in bundled output`);
+          }
+        }
+      }
+    }
+    
+    if (errors.length > 0) {
+      return res.json({ valid: false, errors });
+    }
+    
+    res.json({ 
+      valid: true, 
+      message: `Build valid with ${jsMatches?.length || 1} bundle(s)` 
+    });
+  } catch (e) {
+    res.status(500).json({ 
+      valid: false, 
+      error: e.message,
+      errors: [e.message]
+    });
+  }
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "deployment-service" });
+});
+
+app.listen(5000, () => {
+  console.log("🚀 Deployment Service running on port 5000");
+});
       
       // Verify JS bundles exist
       const jsPattern = /<script[^>]+src="([^"]+\.js)"/g;

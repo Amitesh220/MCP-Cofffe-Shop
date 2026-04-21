@@ -11,18 +11,23 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Retry Utility ─────────────────────────────────────────────
-async function fetchWithRetry(url, options = {}, retries = 5, delay = 2000) {
-  for (let i = 0; i < retries; i++) {
+async function fetchWithRetry(url, options = {}) {
+  let retries = 0;
+  const MAX_RETRIES = 3;
+
+  while (true) {
+    if (retries > MAX_RETRIES) {
+      throw new Error("Backend unavailable");
+    }
+
     try {
       const res = await fetch(url, options);
       if (res.ok) return res;
     } catch (err) {}
 
-    // Exponential backoff
-    await new Promise(r => setTimeout(r, delay * (i + 1)));
+    retries++;
+    await new Promise(r => setTimeout(r, 2000));
   }
-
-  throw new Error("Backend unavailable after retries");
 }
 
 // ── Proxy owner command to backend ──────────────────────────
@@ -33,13 +38,13 @@ app.post('/api/command', async (req, res) => {
 
   try {
     // Check health before sending command
-    await fetchWithRetry(`${BACKEND_URL}/health`, {}, 10, 2000);
+    await fetchWithRetry(`${BACKEND_URL}/health`, {});
 
     const response = await fetchWithRetry(`${BACKEND_URL}/owner-command`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ command })
-    }, 1, 1000); // Command itself shouldn't retry multiple times if it reaches the backend
+    });
 
     const data = await response.json();
     console.log(`💬 [CHAT] Result: ${data.status}`);
@@ -53,7 +58,7 @@ app.post('/api/command', async (req, res) => {
 // ── Get current menu ────────────────────────────────────────
 app.get('/api/menu', async (req, res) => {
   try {
-    const response = await fetchWithRetry(`${BACKEND_URL}/menu`, {}, 5, 2000);
+    const response = await fetchWithRetry(`${BACKEND_URL}/menu`, {});
     const data = await response.json();
     res.json(data);
   } catch (err) {
