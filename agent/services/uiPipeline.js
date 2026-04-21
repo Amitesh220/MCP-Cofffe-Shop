@@ -396,6 +396,32 @@ async function runUIPipeline(parsed, originalCommand) {
       } else {
         throw new Error(`Timeout waiting for services: Backend (${backendReady}), Frontend (${frontendReady})`);
       }
+
+      // Step 5.6: Validate build artifacts
+      try {
+        log('build-validation', 'pending', 'Validating frontend build artifacts...');
+        
+        // Get list of generated components from results
+        const generatedComponents = results
+          .filter(r => r.status === 'success' && r.component)
+          .map(r => r.component);
+        
+        const validationRes = await fetch('http://deployment-service:5000/validate-build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ components: generatedComponents })
+        });
+        
+        const validationData = await validationRes.json();
+        if (!validationData.valid) {
+          throw new Error(`Build validation failed: ${validationData.errors?.join('; ') || 'unknown error'}`);
+        }
+        
+        log('build-validation', 'success', validationData.message || 'Build artifacts validated');
+      } catch (validationErr) {
+        log('build-validation', 'error', `Build validation warning: ${validationErr.message}`);
+        // Don't fail pipeline on build validation errors, just warn
+      }
     } catch (err) {
       log('rebuild', 'error', `Rebuild or health check failed: ${err.message}`);
       return {

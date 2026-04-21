@@ -34,6 +34,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'backend', timestamp: new Date().toISOString() });
 });
 
+// ── 404 Handler (returns JSON, not HTML) ────────────────────
+app.use((req, res) => {
+  res.status(404).json({
+    status: 'not_found',
+    message: `Endpoint ${req.method} ${req.path} not found`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ── Error Handler (ensures all errors return JSON) ──────────
+app.use((err, req, res, next) => {
+  console.error('❌ [BACKEND ERROR]', err.message);
+  
+  // Ensure we never send HTML errors to the frontend
+  res.status(err.status || 500).json({
+    status: 'error',
+    error: err.message || 'Internal server error',
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ── Start Server ────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n☕ Coffee Shop Backend running on port ${PORT}`);

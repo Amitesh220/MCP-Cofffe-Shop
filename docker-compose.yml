@@ -5,15 +5,21 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        CACHE_BUST: ${CACHE_BUST:-default}
     ports:
       - "5173:80"
     environment:
-      - VITE_API_URL=http://localhost:3000
+      # For production inside Docker, frontend talks to backend via https://backend:3000
+      - VITE_API_URL=http://backend:3000
+      # For development override: export VITE_API_URL=http://localhost:3000
     depends_on:
       - backend
     networks:
       - coffee-net
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
 
   backend:
     build:
