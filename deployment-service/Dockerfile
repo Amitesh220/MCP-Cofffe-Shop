@@ -1,7 +1,7 @@
 FROM node:18-alpine
 
 # Install Docker CLI and Docker Compose Plugin
-RUN apk add --no-cache docker-cli docker-cli-compose
+RUN apk add --no-cache docker-cli docker-cli-compose git
 
 WORKDIR /app
 

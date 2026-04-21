@@ -362,7 +362,7 @@ async function runUIPipeline(payload) {
       
       const deployData = await deployRes.json();
       if (!deployRes.ok || !deployData.success) {
-        return { status: 'ERROR', success: false, error: 'Deployment failed' };
+        return { status: 'FAILED', success: false, error: 'Deployment failed' };
       }
       log('rebuild', 'success', 'Containers rebuilt and starting');
 
