@@ -46,36 +46,32 @@ app.post("/deploy", async (req, res) => {
   console.log("🚀 Deployment triggered");
   
   try {
-    // Step 1: Build frontend only (--no-cache forces fresh build)
+    // Step 1: Build frontend only
     console.log('🔨 Building frontend...');
     await executeCommand(
-      'docker compose build --no-cache frontend',
-      '/opt/MCP-Cofffe-Shop'
+      'cd /app/workspace/repo/frontend && npm install && npm run build',
+      '/'
     );
     console.log('✅ Frontend build complete');
 
-    // Step 2: Start frontend only
+    // Step 2: Validate dist path
+    console.log('🔍 Validating build artifacts...');
+    await executeCommand('pwd && ls -la /app/workspace/repo/frontend/dist || true', '/').then(console.log).catch(console.error);
+
+    await executeCommand(
+      'if [ ! -d "/app/workspace/repo/frontend/dist" ]; then echo "❌ BUILD FAILED: dist folder not found"; exit 1; fi',
+      '/'
+    );
+    
+    console.log(`✅ Build validated: dist folder exists`);
+
+    // Step 3: Restart frontend container
     console.log('🚀 Starting frontend...');
     await executeCommand(
-      'docker compose up -d frontend',
+      'docker compose up -d --build frontend',
       '/opt/MCP-Cofffe-Shop'
     );
     console.log('✅ Frontend is running');
-
-    // Step 3: Validate dist folder
-    console.log('🔍 Validating build artifacts...');
-    const distPath = "/opt/MCP-Cofffe-Shop/frontend/dist";
-    if (!fs.existsSync(distPath)) {
-      throw new Error("dist folder not found after build");
-    }
-
-    const files = fs.readdirSync(distPath);
-    const indexPath = path.join(distPath, 'index.html');
-    if (!fs.existsSync(indexPath)) {
-      throw new Error("index.html not found in dist");
-    }
-
-    console.log(`✅ Build validated: ${files.length} files in dist/`);
 
     // Step 4: Wait for backend to be healthy
     await waitForBackendHealth();
