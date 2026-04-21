@@ -16,9 +16,19 @@ const HeroSection = () => {
             Coffee Shop
           </h1>
 
+
+          <h1 className="hero-title">
+            Hi, this is            <span className="hero-title-accent"> working! </span>
+            Coffee Shop
+          </h1>
+
+
           <p className="hero-description">
             Discover the finest artisanal coffee, expertly brewed with passion and powered by cutting-edge AI technology.
             Every cup tells a story of quality, innovation, and exceptional taste.
+          </p>
+          <p className="hero-working-message" style={{ fontWeight: 'bold' }}>
+            Hi, this is working!
           </p>
 
           <div className="hero-features">
