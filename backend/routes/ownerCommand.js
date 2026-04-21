@@ -2,7 +2,13 @@ const express = require('express');
 const { parseOwnerCommand } = require('../services/aiParser');
 const router = express.Router();
 
+let pipelineRunning = false;
+
 router.post('/', async (req, res) => {
+  if (pipelineRunning) {
+    return res.status(429).json({ message: "Pipeline already running" });
+  }
+  pipelineRunning = true;
   try {
     const command = req.body?.command;
 
@@ -50,6 +56,8 @@ router.post('/', async (req, res) => {
       status: "error",
       message: error.message
     });
+  } finally {
+    pipelineRunning = false;
   }
 });
 

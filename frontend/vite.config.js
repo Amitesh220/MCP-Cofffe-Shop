@@ -5,12 +5,13 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    // Generate hashed filenames for cache busting
+    assetsDir: 'assets',
+    sourcemap: false,
     rollupOptions: {
       output: {
-        entryFileNames: 'js/[name]-[hash].js',
-        chunkFileNames: 'js/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
       }
     },
     // Output sourcemaps for debugging in production

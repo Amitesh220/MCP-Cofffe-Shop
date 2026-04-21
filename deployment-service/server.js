@@ -42,7 +42,21 @@ const waitForBackendHealth = async (maxWait = 60000) => {
   throw new Error(`Backend health check timeout after ${maxWait}ms`);
 };
 
+let isDeploying = false;
+let lastDeployTime = 0;
+
 app.post("/deploy", async (req, res) => {
+  if (isDeploying) {
+    console.log("⚠️ Deployment already in progress. Skipping...");
+    return res.status(429).json({ success: false, error: "Deployment in progress" });
+  }
+
+  if (Date.now() - lastDeployTime < 20000) {
+    console.log("Skipping rapid redeploy");
+    return res.status(429).json({ success: false, error: "Rapid redeploy cooldown" });
+  }
+
+  isDeploying = true;
   console.log("🚀 Deployment triggered");
   
   try {
@@ -105,6 +119,9 @@ app.post("/deploy", async (req, res) => {
       error: error.message,
       timestamp: new Date().toISOString()
     });
+  } finally {
+    isDeploying = false;
+    lastDeployTime = Date.now();
   }
 });
 

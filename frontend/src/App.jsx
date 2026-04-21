@@ -50,7 +50,7 @@ function App() {
             console.log('🔄 New deployment detected, reloading...');
             localStorage.setItem('deploymentVersion', newVersion);
             // Force hard reload to get new JS bundles
-            window.location.href = `${window.location.href.split('?')[0]}?t=${Date.now()}`;
+            window.location.reload(true);
           }
         }
       } catch (e) {
